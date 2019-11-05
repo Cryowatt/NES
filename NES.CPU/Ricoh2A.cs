@@ -1,18 +1,34 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace NES.CPU
 {
-    public class Ricoh2A
+    public partial class Ricoh2A
     {
-        private byte A;
-        private byte X;
-        private byte Y;
-        private byte P;
+        [StructLayout(LayoutKind.Explicit)]
+        private struct CpuRegisters
+        {
+            [FieldOffset(0)]
+            public ushort PC;
+            [FieldOffset(0)]
+            public byte PCL;
+            [FieldOffset(1)]
+            public byte PCH;
+            [FieldOffset(2)]
+            public byte S;
+            [FieldOffset(3)]
+            public byte A;
+            [FieldOffset(4)]
+            public byte X;
+            [FieldOffset(5)]
+            public byte Y;
+            [FieldOffset(6)]
+            public byte P;
+        }
 
-        private ushort SP;
-        private ushort PC;
+        private CpuRegisters Registers = new CpuRegisters();
 
         //7  bit  0
         //---- ----
@@ -57,6 +73,17 @@ namespace NES.CPU
             }
         }
 
+        public IEnumerable<object> Process()
+        {
+            byte opcode = Read(this.Registers.PC++);
+            yield return null;
+
+            switch (opcode)
+            {
+                default:
+                    ADC()
+            }
+        }
         //private bool FlagNegative
         //{
         //    get
@@ -66,12 +93,29 @@ namespace NES.CPU
         //    set { }
         //}
 
+        public IEnumerable<object> ADC()
+        {
+            //             #  address R/W description
+            //--- ------- --- ------------------------------------------
+            // 1    PC     R  fetch opcode, increment PC
+            // 2    PC     R  fetch low byte of address, increment PC
+            // 3    PC     R  fetch high byte of address, increment PC
+            // 4  address  R  read from effective address
+            byte opcode = Read(this.Registers.PC++);
+            Read(this.Registers.PC++);
+        }
+
+        private byte Read(ushort address)
+        {
+            return 0;
+        }
+
         public IEnumerable BRK()
         {
             //             #  address R/W description
             //--- ------- --- -----------------------------------------------
             // 1    PC     R  fetch opcode, increment PC
-            
+
             this.PC++;
             yield return null;
             // 2    PC     R  read next instruction byte (and throw it away),
