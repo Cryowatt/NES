@@ -5,7 +5,51 @@ using System.Runtime.InteropServices;
 
 namespace NES.CPU
 {
-    public partial class Ricoh2A
+    public interface IBus
+    {
+        public void Write(Address ptr, byte value);
+    }
+
+    public class Bus : IBus
+    {
+        private byte lastWrite;
+
+        public void Write(Address ptr, byte value)
+        {
+            this.lastWrite = value;
+        }
+    }
+
+    public interface IBusDevice
+    {
+
+    }
+
+    public class Ram : IBusDevice
+    {
+        public void Send(Address address, byte value)
+        {
+
+        }
+
+        public void Recieve(Address address, byte value)
+        {
+
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct Address
+    {
+        [FieldOffset(0)]
+        private ushort Ptr;
+        [FieldOffset(0)]
+        private byte Low;
+        [FieldOffset(1)]
+        private byte High;
+    }
+
+    public class Ricoh2A
     {
         [StructLayout(LayoutKind.Explicit)]
         private struct CpuRegisters
