@@ -7,7 +7,7 @@ namespace NES.CPU
 {
     public interface IBus
     {
-        public void Write(Address ptr, byte value);
+        void Write(Address ptr, byte value);
     }
 
     public class Bus : IBus
@@ -22,19 +22,21 @@ namespace NES.CPU
 
     public interface IBusDevice
     {
+        byte Read(Address address);
 
+        void Write(Address address, byte value);
     }
 
     public class Ram : IBusDevice
     {
-        public void Send(Address address, byte value)
+        public byte Read(Address address)
         {
-
+            throw new NotImplementedException();
         }
 
-        public void Recieve(Address address, byte value)
+        public void Write(Address address, byte value)
         {
-
+            throw new NotImplementedException();
         }
     }
 
@@ -102,32 +104,38 @@ namespace NES.CPU
         {
             get
             {
-                return (this.P & (byte)StatusFlags.Carry) > 0;
+                return (this.Registers.P & (byte)StatusFlags.Carry) > 0;
             }
             set
             {
                 if (value)
                 {
-                    this.P |= (byte)StatusFlags.Carry;
+                    this.Registers.P |= (byte)StatusFlags.Carry;
                 }
                 else
                 {
-                    this.P &= (byte)~StatusFlags.Carry;
+                    this.Registers.P &= (byte)~StatusFlags.Carry;
                 }
             }
         }
 
         public IEnumerable<object> Process()
         {
+            // 1    PC     R  fetch opcode, increment PC
             byte opcode = Read(this.Registers.PC++);
             yield return null;
-
-            switch (opcode)
+            IEnumerable<object> instructionCycles = opcode switch
             {
-                default:
-                    ADC()
-            }
+                0xea => NOP()
+                _ => throw new NotImplementedException()
+                //ADC(operand);
+            };
         }
+
+        private object NOP()
+        {
+        }
+
         //private bool FlagNegative
         //{
         //    get
@@ -146,6 +154,7 @@ namespace NES.CPU
             // 3    PC     R  fetch high byte of address, increment PC
             // 4  address  R  read from effective address
             byte opcode = Read(this.Registers.PC++);
+            yield return null;
             Read(this.Registers.PC++);
         }
 
@@ -160,7 +169,7 @@ namespace NES.CPU
             //--- ------- --- -----------------------------------------------
             // 1    PC     R  fetch opcode, increment PC
 
-            this.PC++;
+            this.Registers.PC++;
             yield return null;
             // 2    PC     R  read next instruction byte (and throw it away),
             //                increment PC
