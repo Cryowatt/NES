@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 namespace NES.CPU
 {
@@ -40,17 +39,6 @@ namespace NES.CPU
         }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    public struct Address
-    {
-        [FieldOffset(0)]
-        private ushort Ptr;
-        [FieldOffset(0)]
-        private byte Low;
-        [FieldOffset(1)]
-        private byte High;
-    }
-
     public class Ricoh2A
     {
         public Ricoh2A() : this(new CpuRegisters()) { }
@@ -62,32 +50,41 @@ namespace NES.CPU
 
         public CpuRegisters Registers => regs;
 
-        private CpuRegisters regs = new CpuRegisters();
+        private CpuRegisters regs;
 
         public IEnumerable<object> Process()
         {
-            // PC:R  fetch opcode, increment PC
-            byte opcode = Read(this.regs.PC++);
+            this.regs.PCL = Read(0xFFFC);
             yield return null;
-            IEnumerable<object> instructionCycles = opcode switch
-            {
-                //set  00      20      40      60      80      a0      c0      e0      mode
-                //+0a  ASL     ROL     LSR     ROR     TXA     TAX     DEX     NOP     Accu/imp
-                0x0a => AccumulatorAddressing(ASL),
-                0x2a => AccumulatorAddressing(ROL),
-                0x4a => AccumulatorAddressing(LSR),
-                0x6a => AccumulatorAddressing(ROR),
-                0x8a => ImpliedAddressing(TXA),
-                0xaa => ImpliedAddressing(TAX),
-                0xca => ImpliedAddressing(DEX),
-                0xea => ImpliedAddressing(NOP),
-                _ => throw new NotImplementedException()
-                //ADC(operand);
-            };
+            this.regs.PCH = Read(0xFFFC);
+            yield return null;
 
-            foreach (var cycle in instructionCycles)
+            while (true)
             {
-                yield return cycle;
+                // PC:R  fetch opcode, increment PC
+                byte opcode = Read(this.regs.PC++);
+                yield return null;
+
+                IEnumerable<object> instructionCycles = opcode switch
+                {
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+0a  ASL     ROL     LSR     ROR     TXA     TAX     DEX     NOP     Accu/imp
+                    0x0a => AccumulatorAddressing(ASL),
+                    0x2a => AccumulatorAddressing(ROL),
+                    0x4a => AccumulatorAddressing(LSR),
+                    0x6a => AccumulatorAddressing(ROR),
+                    0x8a => ImpliedAddressing(TXA),
+                    0xaa => ImpliedAddressing(TAX),
+                    0xca => ImpliedAddressing(DEX),
+                    0xea => ImpliedAddressing(NOP),
+                    _ => throw new NotImplementedException()
+                    //ADC(operand);
+                };
+
+                foreach (var cycle in instructionCycles)
+                {
+                    yield return cycle;
+                }
             }
         }
 
@@ -248,7 +245,7 @@ namespace NES.CPU
             Read(this.regs.PC++);
         }
 
-        private byte Read(ushort address)
+        private byte Read(Address address)
         {
             return 0;
         }

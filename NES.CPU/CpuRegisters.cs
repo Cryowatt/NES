@@ -6,7 +6,7 @@ namespace NES.CPU
     public struct CpuRegisters
     {
         [FieldOffset(0)]
-        public ushort PC;
+        public Address PC;
         [FieldOffset(0)]
         public byte PCL;
         [FieldOffset(1)]
