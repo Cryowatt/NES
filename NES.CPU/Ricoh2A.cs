@@ -36,6 +36,44 @@ namespace NES.CPU
                 IEnumerable<object> instructionCycles = opcode switch
                 {
                     //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+00  BRK     JSR     RTI     RTS     NOP*    LDY     CPY     CPX     Impl/immed
+                    0x00 => StubAddressing(BRK),
+                    0x20 => StubAddressing(JSR),
+                    0x40 => StubAddressing(RTI),
+                    0x60 => StubAddressing(RTS),
+                    0x80 => StubAddressing(NOP), //*
+                    0xa0 => StubAddressing(LDY),
+                    0xc0 => StubAddressing(CPY),
+                    0xe0 => StubAddressing(CPX),
+
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+01  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     (indir,x)
+                    0x01 => StubAddressing(ORA),
+                    0x21 => StubAddressing(AND),
+                    0x41 => StubAddressing(EOR),
+                    0x61 => StubAddressing(ADC),
+                    0x81 => StubAddressing(STA),
+                    0xa1 => StubAddressing(LDA),
+                    0xc1 => StubAddressing(CMP),
+                    0xe1 => StubAddressing(SBC),
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+02   t       t       t       t      NOP*t   LDX     NOP*t   NOP*t     ? /immed
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+03  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    (indir,x)
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+04  NOP*    BIT     NOP*    NOP*    STY     LDY     CPY     CPX     Zeropage
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+05  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Zeropage
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+06  ASL     ROL     LSR     ROR     STX     LDX     DEC     INC     Zeropage
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+07  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    Zeropage
+
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+08  PHP     PLP     PHA     PLA     DEY     TAY     INY     INX     Implied
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+09  ORA     AND     EOR     ADC     NOP*    LDA     CMP     SBC     Immediate
+                    //set  00      20      40      60      80      a0      c0      e0      mode
                     //+0a  ASL     ROL     LSR     ROR     TXA     TAX     DEX     NOP     Accu/imp
                     0x0a => AccumulatorAddressing(ASL),
                     0x2a => AccumulatorAddressing(ROL),
@@ -45,8 +83,52 @@ namespace NES.CPU
                     0xaa => ImpliedAddressing(TAX),
                     0xca => ImpliedAddressing(DEX),
                     0xea => ImpliedAddressing(NOP),
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+0b  ANC**   ANC**   ASR**   ARR**   ANE**   LXA**   SBX**   SBC*    Immediate
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+0c  NOP*    BIT     JMP     JMP ()  STY     LDY     CPY     CPX     Absolute
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+0d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+0e  ASL     ROL     LSR     ROR     STX     LDX     DEC     INC     Absolute
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+0f  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    Absolute
+
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+10  BPL     BMI     BVC     BVS     BCC     BCS     BNE     BEQ     Relative
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+11  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     (indir),y
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+12   t       t       t       t       t       t       t       t         ?
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+13  SLO*    RLA*    SRE*    RRA*    SHA**   LAX*    DCP*    ISB*    (indir),y
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+14  NOP*    NOP*    NOP*    NOP*    STY     LDY     NOP*    NOP*    Zeropage,x
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+15  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Zeropage,x
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+16  ASL     ROL     LSR     ROR     STX  y) LDX  y) DEC     INC     Zeropage,x
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+17  SLO*    RLA*    SRE*    RRA*    SAX* y) LAX* y) DCP*    ISB*    Zeropage,x
+
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+18  CLC     SEC     CLI     SEI     TYA     CLV     CLD     SED     Implied
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+19  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,y
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+1a  NOP*    NOP*    NOP*    NOP*    TXS     TSX     NOP*    NOP*    Implied
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+1b  SLO*    RLA*    SRE*    RRA*    SHS**   LAS**   DCP*    ISB*    Absolute,y
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+1c  NOP*    NOP*    NOP*    NOP*    SHY**   LDY     NOP*    NOP*    Absolute,x
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+1d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,x
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+1e  ASL     ROL     LSR     ROR     SHX**y) LDX  y) DEC     INC     Absolute,x
+                    //set  00      20      40      60      80      a0      c0      e0      mode
+                    //+1f  SLO*    RLA*    SRE*    RRA*    SHA**y) LAX* y) DCP*    ISB*    Absolute,x
+
                     _ => throw new NotImplementedException()
-                    //ADC(operand);
                 };
 
                 foreach (var cycle in instructionCycles)
@@ -54,6 +136,16 @@ namespace NES.CPU
                     yield return cycle;
                 }
             }
+        }
+
+        // This will be deleted later
+        private IEnumerable<object> StubAddressing(Action microcode)
+        {
+            throw new NotImplementedException();
+        }
+        private IEnumerable<object> StubAddressing(Func<byte, byte> microcode)
+        {
+            throw new NotImplementedException();
         }
 
         private IEnumerable<object> AccumulatorAddressing(Func<byte, byte> microcode)
@@ -130,6 +222,8 @@ namespace NES.CPU
         public void JSR() { }
         public void LDA() { }
         public void LDX() { }
+        public void LDY() { }
+
 
         public byte LSR(byte operand)
         {
