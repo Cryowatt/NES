@@ -4,47 +4,15 @@ using System.Collections.Generic;
 
 namespace NES.CPU
 {
-    public interface IBus
-    {
-        void Write(Address ptr, byte value);
-    }
-
-    public class Bus : IBus
-    {
-        private byte lastWrite;
-
-        public void Write(Address ptr, byte value)
-        {
-            this.lastWrite = value;
-        }
-    }
-
-    public interface IBusDevice
-    {
-        byte Read(Address address);
-
-        void Write(Address address, byte value);
-    }
-
-    public class Ram : IBusDevice
-    {
-        public byte Read(Address address)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Write(Address address, byte value)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
     public class Ricoh2A
     {
-        public Ricoh2A() : this(new CpuRegisters()) { }
+        private IBus bus;
 
-        public Ricoh2A(CpuRegisters registers)
+        public Ricoh2A(IBus bus) : this(bus, new CpuRegisters()) { }
+
+        public Ricoh2A(IBus bus, CpuRegisters registers)
         {
+            this.bus = bus;
             this.regs = registers;
         }
 

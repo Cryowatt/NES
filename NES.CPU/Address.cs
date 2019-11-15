@@ -51,10 +51,11 @@ namespace NES.CPU
         }
 
         public static implicit operator Address(ushort address) => new Address(address);
+        public static implicit operator ushort(Address address) => address.Ptr;
 
         public override string ToString()
         {
-            return this.Ptr.ToString("X4");
+            return string.Format("0x{0:X4}", this.Ptr);
         }
     }
 }

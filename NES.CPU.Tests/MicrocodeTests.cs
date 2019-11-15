@@ -62,7 +62,8 @@ namespace NES.CPU.Tests
         [Theory]
         public void ADC(MicrocodeTestInput input)
         {
-            var cpu = new Ricoh2A(input.InitialState);
+            var rambus = new Bus(new Ram(new AddressMask(0x0000, 0x0000), 0xffff));
+            var cpu = new Ricoh2A(rambus, input.InitialState);
             cpu.ADC(input.Operand);
             Assert.Equal(input.ExpectedState, cpu.Registers);
         }
