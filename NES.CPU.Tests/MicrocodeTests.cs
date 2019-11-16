@@ -67,5 +67,26 @@ namespace NES.CPU.Tests
             cpu.ADC(input.Operand);
             Assert.Equal(input.ExpectedState, cpu.Registers);
         }
+
+        public static IEnumerable<object[]> ANDTestCases => new List<MicrocodeTestInput>
+        {
+            Operand(0xff).WithA(0).ExpectsA(0).Expects(StatusFlags.Zero),
+            Operand(0xff).WithA(0x80).ExpectsA(0x80).Expects(StatusFlags.Negative),
+            Operand(0xff).WithA(0xff).ExpectsA(0xff).Expects(StatusFlags.Negative),
+            Operand(0x55).WithA(0xaa).ExpectsA(0).Expects(StatusFlags.Zero),
+            Operand(0x1).WithA(0x1).ExpectsA(0x1),
+            Operand(0x3).WithA(0x1).ExpectsA(0x1),
+            Operand(0x1).WithA(0x3).ExpectsA(0x1),
+        }.Select(o => new object[] { o });
+
+        [MemberData(nameof(ANDTestCases))]
+        [Theory]
+        public void AND(MicrocodeTestInput input)
+        {
+            var rambus = new Bus(new Ram(new AddressMask(0x0000, 0x0000), 0xffff));
+            var cpu = new Ricoh2A(rambus, input.InitialState);
+            cpu.AND(input.Operand);
+            Assert.Equal(input.ExpectedState, cpu.Registers);
+        }
     }
 }

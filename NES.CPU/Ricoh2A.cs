@@ -26,14 +26,9 @@ namespace NES.CPU
         }
 
         // This will be deleted later
-        private IEnumerable<object> StubAddressing(Action microcode)
-        {
-            throw new NotImplementedException();
-        }
-        private IEnumerable<object> StubAddressing(Func<byte, byte> microcode)
-        {
-            throw new NotImplementedException();
-        }
+        private IEnumerable<object> StubAddressing(Action microcode) => throw new NotImplementedException();
+        private IEnumerable<object> StubAddressing(Action<byte> microcode) => throw new NotImplementedException();
+        private IEnumerable<object> StubAddressing(Func<byte, byte> microcode) => throw new NotImplementedException();
 
         private IEnumerable<object> AccumulatorAddressing(Func<byte, byte> microcode)
         {
@@ -58,14 +53,15 @@ namespace NES.CPU
             return (byte)result;
         }
 
-        public void ANC() { }
+        public void ANC() => throw new InvalidOperationException("Invalid Opcode");
 
-        public byte AND(byte operand)
+        public void AND(byte operand)
         {
-            var result = this.regs.A & operand;
-            this.regs.Zero = result == 0;
-            return (byte)result;
+            this.regs.A &= operand;
+            this.regs.Zero = this.regs.A == 0;
+            this.regs.P = (StatusFlags)((this.regs.P & ~StatusFlags.Negative) | ((StatusFlags)this.regs.A & StatusFlags.Negative));
         }
+
         public void ANE() { }
         public void ARR() { }
         public byte ASL(byte operand)
