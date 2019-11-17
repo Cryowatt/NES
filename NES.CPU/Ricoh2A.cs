@@ -46,11 +46,17 @@ namespace NES.CPU
             microcode();
         }
 
-        public byte ADC(byte operand)
+        public void ADC(byte operand)
         {
             var result = this.regs.A + operand + (byte)(this.regs.P & StatusFlags.Carry);
-            this.regs.Zero = result == 0;
-            return (byte)result;
+            this.regs.P = StatusFlags.Default | 
+                (((StatusFlags)result) & StatusFlags.Negative) | 
+                (StatusFlags)(((this.regs.A ^ result) & (operand ^ result) & (int)StatusFlags.Negative) >> 1);
+            this.regs.A = (byte)result;
+            this.regs.Carry = (byte)(result > byte.MaxValue ? 1 : 0);
+            this.regs.Zero = this.regs.A == 0;
+            //this.regs.P |= (StatusFlags)(((this.regs.A ^ result) & (operand ^ result) & (int)StatusFlags.Negative) >> 1);
+            //this.regs.P |= (this.regs.P & ~StatusFlags.Negative) | ((StatusFlags)this.regs.A & StatusFlags.Negative);
         }
 
         public void ANC() => throw new InvalidOperationException("Invalid Opcode");
@@ -59,7 +65,7 @@ namespace NES.CPU
         {
             this.regs.A &= operand;
             this.regs.Zero = this.regs.A == 0;
-            this.regs.P = (StatusFlags)((this.regs.P & ~StatusFlags.Negative) | ((StatusFlags)this.regs.A & StatusFlags.Negative));
+            this.regs.P = (this.regs.P & ~StatusFlags.Negative) | ((StatusFlags)this.regs.A & StatusFlags.Negative);
         }
 
         public void ANE() { }
@@ -192,19 +198,6 @@ namespace NES.CPU
         //    }
         //    set { }
         //}
-
-        public IEnumerable<object> ADC()
-        {
-            //             #  address R/W description
-            //--- ------- --- ------------------------------------------
-            // 1    PC     R  fetch opcode, increment PC
-            // 2    PC     R  fetch low byte of address, increment PC
-            // 3    PC     R  fetch high byte of address, increment PC
-            // 4  address  R  read from effective address
-            byte opcode = Read(this.regs.PC++);
-            yield return null;
-            Read(this.regs.PC++);
-        }
 
         private byte Read(Address address)
         {

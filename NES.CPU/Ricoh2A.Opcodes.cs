@@ -8,9 +8,9 @@ namespace NES.CPU
     {
         public IEnumerable<object> Process()
         {
-            this.regs.PCL = Read(0xFFFC);
+            this.regs.PC.Low = Read(0xFFFC);
             yield return null;
-            this.regs.PCH = Read(0xFFFC);
+            this.regs.PC.High = Read(0xFFFD);
             yield return null;
 
             while (true)

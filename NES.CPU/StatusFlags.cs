@@ -16,6 +16,7 @@ namespace NES.CPU
     [Flags]
     public enum StatusFlags : byte
     {
+        Default = Undefined_5 | Undefined_6,
         None = 0,
         Carry = 0x1 << 0,
         Zero = 0x1 << 1,

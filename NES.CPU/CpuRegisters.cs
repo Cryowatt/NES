@@ -7,10 +7,6 @@ namespace NES.CPU
     {
         [FieldOffset(0)]
         public Address PC;
-        [FieldOffset(0)]
-        public byte PCL;
-        [FieldOffset(1)]
-        public byte PCH;
         [FieldOffset(2)]
         public byte S;
         [FieldOffset(3)]
@@ -21,6 +17,13 @@ namespace NES.CPU
         public byte Y;
         [FieldOffset(6)]
         public StatusFlags P;
+
+        private CpuRegisters(StatusFlags flags)
+        {
+            this.S = this.A = this.X = this.Y = 0;
+            this.PC = 0x0000;
+            this.P = flags;
+        }
 
         public override string ToString() => $"PC[{PC}] S[{S}] A[{A}] X[{X}] Y[{Y}] P[{P}]";
 
@@ -74,7 +77,6 @@ namespace NES.CPU
             }
         }
 
-        public static readonly CpuRegisters Empty = new CpuRegisters();
-
+        public static readonly CpuRegisters Empty = new CpuRegisters(StatusFlags.Default);
     }
 }
