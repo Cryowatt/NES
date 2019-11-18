@@ -17,10 +17,6 @@ namespace NES.CPU
             this.regs.Zero = this.regs.A == 0;
         }
 
-        public void AHX() { }
-
-        public void ANC(byte operand) => throw new InvalidOperationException("Invalid Opcode");
-
         public void AND(byte operand)
         {
             this.regs.A &= operand;
@@ -28,8 +24,6 @@ namespace NES.CPU
             this.regs.P = (this.regs.P & ~StatusFlags.Negative) | ((StatusFlags)this.regs.A & StatusFlags.Negative);
         }
 
-        public void ARR() => throw new InvalidOperationException("Invalid Opcode");
-        
         public byte ASL(byte operand)
         {
             var result = operand << 1;
@@ -43,8 +37,6 @@ namespace NES.CPU
             return (byte)result;
         }
 
-        public void ALR() { }
-        public void AXS() { }
         public void BCC() { }
         public void BCS() { }
         public void BEQ() { }
@@ -62,7 +54,6 @@ namespace NES.CPU
         public void CMP() { }
         public void CPX() { }
         public void CPY() { }
-        public void DCP() { }
         public void DEC() { }
 
         public void DEX()
@@ -75,15 +66,11 @@ namespace NES.CPU
         public void INC() { }
         public void INX() { }
         public void INY() { }
-        public void ISC() { }
         public void JMP() { }
         public void JSR() { }
-        public void LAS() { }
-        public void LAX() { }
         public void LDA() { }
         public void LDX() { }
         public void LDY() { }
-
 
         public byte LSR(byte operand)
         {
@@ -91,15 +78,12 @@ namespace NES.CPU
             var result = operand >> 1;
             return (byte)result;
         }
-        public void LXA() { }
         public void NOP() { }
         public void ORA() { }
         public void PHA() { }
         public void PHP() { }
         public void PLA() { }
         public void PLP() { }
-        public void RLA() { }
-        public void RRA() { }
         public byte ROL(byte operand)
         {
             int result = (operand << 1) | this.regs.Carry;
@@ -122,24 +106,13 @@ namespace NES.CPU
 
         public void RTI() { }
         public void RTS() { }
-        public void SAX() { }
         public void SBC() { }
-        public void SBX() { }
         public void SEC() { }
         public void SED() { }
         public void SEI() { }
-        public void SHA() { }
-        public void SHX() { }
-        public void SHS() { }
-
-        public void SHY() { }
-        public void SLO() { }
-        public void SRE() { }
         public void STA() { }
         public void STX() { }
         public void STY() { }
-
-        public void TAS() { }
         public void TAX()
         {
             this.regs.X = this.regs.A;
@@ -155,6 +128,5 @@ namespace NES.CPU
 
         public void TXS() { }
         public void TYA() { }
-        public void XAA() => throw new InvalidOperationException("Invalid Opcode");
     }
 }
