@@ -37,22 +37,7 @@ namespace NES.CPU
             return (byte)result;
         }
 
-        public void BCC(byte operand)
-        {
-            if (this.regs.Carry)
-            {
-                this.regs.PC.Low += operand;
-            }
-            //1     PC      R  fetch opcode, increment PC
-            //2     PC      R  fetch operand, increment PC
-            //3     PC      R  Fetch opcode of next instruction,
-            //                 If branch is taken, add operand to PCL.
-            //                 Otherwise increment PC.
-            //4+    PC*     R  Fetch opcode of next instruction.
-            //                 Fix PCH. If it did not change, increment PC.
-            //5!    PC      R  Fetch opcode of next instruction,
-            //                 increment PC.
-        }
+        public bool BCC() => this.regs.Carry > 0;
         public void BCS() { }
         public void BEQ() { }
         public void BIT() { }
