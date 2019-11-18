@@ -17,6 +17,8 @@ namespace NES.CPU
             this.regs.Zero = this.regs.A == 0;
         }
 
+        public void AHX() { }
+
         public void ANC(byte operand) => throw new InvalidOperationException("Invalid Opcode");
 
         public void AND(byte operand)
@@ -41,7 +43,8 @@ namespace NES.CPU
             return (byte)result;
         }
 
-        public void ASR() { }
+        public void ALR() { }
+        public void AXS() { }
         public void BCC() { }
         public void BCS() { }
         public void BEQ() { }
@@ -72,7 +75,7 @@ namespace NES.CPU
         public void INC() { }
         public void INX() { }
         public void INY() { }
-        public void ISB() { }
+        public void ISC() { }
         public void JMP() { }
         public void JSR() { }
         public void LAS() { }
@@ -136,6 +139,7 @@ namespace NES.CPU
         public void STX() { }
         public void STY() { }
 
+        public void TAS() { }
         public void TAX()
         {
             this.regs.X = this.regs.A;

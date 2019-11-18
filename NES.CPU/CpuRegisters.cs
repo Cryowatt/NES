@@ -18,9 +18,10 @@ namespace NES.CPU
         [FieldOffset(6)]
         public StatusFlags P;
 
-        private CpuRegisters(StatusFlags flags)
+        public CpuRegisters(StatusFlags flags)
         {
-            this.S = this.A = this.X = this.Y = 0;
+            this.S = 0xfd;
+            this.A = this.X = this.Y = 0;
             this.PC = 0x0000;
             this.P = flags;
         }
