@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Xunit;
 
 namespace NES.CPU.Tests
@@ -46,26 +43,7 @@ namespace NES.CPU.Tests
             }
         }
 
-        public static MicrocodeTestInput Operand(byte operand) => new MicrocodeTestInput(operand);
-        //CLC      ; 1 + 1 = 2, returns V = 0
-        //LDA #$01
-        //ADC #$01
-
-        //CLC      ; 1 + -1 = 0, returns V = 0
-        //LDA #$01
-        //ADC #$FF
-
-        //CLC      ; 127 + 1 = 128, returns V = 1
-        //LDA #$7F
-        //ADC #$01
-
-        //CLC      ; -128 + -1 = -129, returns V = 1
-        //LDA #$80
-        //ADC #$FF
-
-        //SEC      ; Note: SEC, not CLC
-        //LDA #$3F ; 63 + 64 + 1 = 128, returns V = 1
-        //ADC #$40
+        private static MicrocodeTestInput Operand(byte operand) => new MicrocodeTestInput(operand);
 
         [MemberData(nameof(ADCTestCases))]
         [Theory]
@@ -79,16 +57,6 @@ namespace NES.CPU.Tests
             Operand(0x01).WithA(0x7f).ExpectsA(0x80).Expects(StatusFlags.Overflow | StatusFlags.Negative), // 127 + 1 = 128
             Operand(0x80).WithA(0xff).ExpectsA(0x7f).Expects(StatusFlags.Carry | StatusFlags.Overflow), // -128 + -1 = -129
             Operand(0x40).WithA(0x3f).WithFlag(StatusFlags.Carry).ExpectsA(0x80).Expects(StatusFlags.Overflow | StatusFlags.Negative), // -128 + -1 = -129
-            //Operand(0).Expects(StatusFlags.Zero), // Zero flag
-            //Operand(1).ExpectsA(1), // 0 + 1 = 1
-            //Operand(255).WithA(255).Expects(StatusFlags.Carry).ExpectsA(254),
-            //C	Carry Flag	Set if overflow in bit 7
-            //Z	Zero Flag	Set if A = 0
-            //I	Interrupt Disable	Not affected
-            //D	Decimal Mode Flag	Not affected
-            //B	Break Command	Not affected
-            //V	Overflow Flag	Set if sign bit is incorrect
-            //N	Negative Flag	Set if bit 7 set
         }.Select(o => new object[] { o });
 
         [MemberData(nameof(ANDTestCases))]
@@ -106,6 +74,22 @@ namespace NES.CPU.Tests
             Operand(0x3).WithA(0x1).ExpectsA(0x1),
             Operand(0x1).WithA(0x3).ExpectsA(0x1),
         }.Select(o => new object[] { o });
+
+        //[MemberData(nameof(ANCTestCases))]
+        //[Theory]
+        //public void ANC(MicrocodeTestInput input) =>
+        //    OpcodeTest((cpu, operand) => cpu.ANC(operand), input);
+
+        //public static IEnumerable<object[]> ANCTestCases => new List<MicrocodeTestInput>
+        //{
+        //    Operand(0xff).WithA(0).ExpectsA(0).Expects(StatusFlags.Zero),
+        //    Operand(0xff).WithA(0x80).ExpectsA(0x80).Expects(StatusFlags.Negative),
+        //    Operand(0xff).WithA(0xff).ExpectsA(0xff).Expects(StatusFlags.Negative),
+        //    Operand(0x55).WithA(0xaa).ExpectsA(0).Expects(StatusFlags.Zero),
+        //    Operand(0x1).WithA(0x1).ExpectsA(0x1),
+        //    Operand(0x3).WithA(0x1).ExpectsA(0x1),
+        //    Operand(0x1).WithA(0x3).ExpectsA(0x1),
+        //}.Select(o => new object[] { o });
 
         private void OpcodeTest(Action<Ricoh2A, byte> opcode, MicrocodeTestInput input)
         {
