@@ -193,7 +193,7 @@ namespace NES.CPU
                 0x30 => StubAddressing(BMI),
                 0x50 => StubAddressing(BVC),
                 0x70 => StubAddressing(BVS),
-                0x90 => StubAddressing(BCC),
+                0x90 => RelativeAddressing(BCC),
                 0xb0 => StubAddressing(BCS),
                 0xd0 => StubAddressing(BNE),
                 0xf0 => StubAddressing(BEQ),

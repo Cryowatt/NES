@@ -15,6 +15,7 @@ namespace NES.CPU.Tests
             }
 
             public byte Operand { get; }
+            public byte ExpectedResult { get; private set; }
             public CpuRegisters InitialState = CpuRegisters.Empty;
             public CpuRegisters ExpectedState = CpuRegisters.Empty;
 
@@ -27,6 +28,13 @@ namespace NES.CPU.Tests
             public MicrocodeTestInput WithFlag(StatusFlags flags)
             {
                 this.InitialState.P |= flags;
+                return this;
+            }
+
+            public MicrocodeTestInput Expects(byte expectedResult, StatusFlags flags = StatusFlags.None)
+            {
+                this.ExpectedResult = expectedResult;
+                this.ExpectedState.P = flags | StatusFlags.Default;
                 return this;
             }
 
@@ -75,27 +83,33 @@ namespace NES.CPU.Tests
             Operand(0x1).WithA(0x3).ExpectsA(0x1),
         }.Select(o => new object[] { o });
 
-        //[MemberData(nameof(ANCTestCases))]
-        //[Theory]
-        //public void ANC(MicrocodeTestInput input) =>
-        //    OpcodeTest((cpu, operand) => cpu.ANC(operand), input);
+        [MemberData(nameof(ASLTestCases))]
+        [Theory]
+        public void ASL(MicrocodeTestInput input) =>
+            OpcodeTest((cpu, operand) => cpu.ASL(operand), input);
 
-        //public static IEnumerable<object[]> ANCTestCases => new List<MicrocodeTestInput>
-        //{
-        //    Operand(0xff).WithA(0).ExpectsA(0).Expects(StatusFlags.Zero),
-        //    Operand(0xff).WithA(0x80).ExpectsA(0x80).Expects(StatusFlags.Negative),
-        //    Operand(0xff).WithA(0xff).ExpectsA(0xff).Expects(StatusFlags.Negative),
-        //    Operand(0x55).WithA(0xaa).ExpectsA(0).Expects(StatusFlags.Zero),
-        //    Operand(0x1).WithA(0x1).ExpectsA(0x1),
-        //    Operand(0x3).WithA(0x1).ExpectsA(0x1),
-        //    Operand(0x1).WithA(0x3).ExpectsA(0x1),
-        //}.Select(o => new object[] { o });
+        public static IEnumerable<object[]> ASLTestCases => new List<MicrocodeTestInput>
+        {
+            Operand(0x0).Expects(0x0, StatusFlags.Zero),
+            Operand(0x1).Expects(0x2),
+            Operand(0x40).Expects(0x80, StatusFlags.Negative),
+            Operand(0x80).Expects(0x00, StatusFlags.Carry | StatusFlags.Zero),
+        }.Select(o => new object[] { o });
 
         private void OpcodeTest(Action<Ricoh2A, byte> opcode, MicrocodeTestInput input)
         {
             var rambus = new Bus(new Ram(new AddressMask(0x0000, 0x0000), 0xffff));
             var cpu = new Ricoh2A(rambus, input.InitialState);
             opcode(cpu, input.Operand);
+            Assert.Equal(input.ExpectedState, cpu.Registers);
+        }
+
+        private void OpcodeTest(Func<Ricoh2A, byte, byte> opcode, MicrocodeTestInput input)
+        {
+            var rambus = new Bus(new Ram(new AddressMask(0x0000, 0x0000), 0xffff));
+            var cpu = new Ricoh2A(rambus, input.InitialState);
+            var result = opcode(cpu, input.Operand);
+            Assert.Equal(input.ExpectedResult, result);
             Assert.Equal(input.ExpectedState, cpu.Registers);
         }
     }

@@ -10,7 +10,7 @@ namespace NES.CPU
 
         public Ricoh2A(IBus bus)
             : this(bus, new CpuRegisters(StatusFlags.Default | StatusFlags.InterruptDisable))
-        {}
+        { }
 
         public Ricoh2A(IBus bus, CpuRegisters registers)
         {
@@ -48,6 +48,46 @@ namespace NES.CPU
             microcode();
         }
 
+        private IEnumerable<object> RelativeAddressing(Func<bool> microcode)
+        {
+            //2     PC      R  fetch operand, increment PC
+            var operand = Read(this.regs.PC++);
+            yield return null;
+            //3     PC      R  Fetch opcode of next instruction,
+            //                 If branch is taken, add operand to PCL.
+            //                 Otherwise increment PC.
+            Read(this.regs.PC);
+            var jumpAddress = (Address)(this.regs.PC + (sbyte)operand);
+            if (!microcode())
+            {
+                this.regs.PC++;
+                yield return null;
+            }
+            else
+            {
+                this.regs.PC.Low = jumpAddress.Low;
+                yield return null;
+
+                //4+    PC*     R  Fetch opcode of next instruction.
+                //                 Fix PCH. If it did not change, increment PC.
+                Read(this.regs.PC);
+                yield return null;
+
+                if (this.regs.PC.High == jumpAddress.High)
+                {
+                    this.regs.PC++;
+                }
+                else
+                {
+                    this.regs.PC.High = jumpAddress.High;
+                    //5!    PC      R  Fetch opcode of next instruction,
+                    //                 increment PC.
+                    Read(this.regs.PC++);
+                    yield return null;
+                }
+            }
+        }
+
         public IEnumerable<object> Process()
         {
             //$4017 = $00 (frame irq enabled)
@@ -58,7 +98,7 @@ namespace NES.CPU
             yield return null;
 
             //$4000-$400F = $00
-            for(Address address = 0x4000; address <= 0x400f; address++)
+            for (Address address = 0x4000; address <= 0x400f; address++)
             {
                 this.bus.Write(address, 0);
                 yield return null;
@@ -76,7 +116,7 @@ namespace NES.CPU
             //2A03G: APU Frame Counter reset. (but 2A03letterless: APU frame counter powers up at a value equivalent to 15)
             //Internal memory ($0000-$07FF) has unreliable startup state. Some machines may have consistent RAM contents at power-on, but others do not.
             //Emulators often implement a consistent RAM startup state (e.g. all $00 or $FF, or a particular pattern), and flash carts like the PowerPak may partially or fully initialize RAM before starting a program, so an NES programmer must be careful not to rely on the startup contents of RAM.
-            
+
             this.regs.PC.Low = Read(0xFFFC);
             yield return null;
             this.regs.PC.High = Read(0xFFFD);
