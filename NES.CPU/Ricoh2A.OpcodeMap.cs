@@ -277,13 +277,13 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+18  CLC     SEC     CLI     SEI     TYA     CLV     CLD     SED     Implied
-                0x18 => StubAddressing(CLC),
+                0x18 => ImpliedAddressing(CLC),
                 0x38 => StubAddressing(SEC),
-                0x58 => StubAddressing(CLI),
+                0x58 => ImpliedAddressing(CLI),
                 0x78 => StubAddressing(SEI),
                 0x98 => StubAddressing(TYA),
-                0xb8 => StubAddressing(CLV),
-                0xd8 => StubAddressing(CLD),
+                0xb8 => ImpliedAddressing(CLV),
+                0xd8 => ImpliedAddressing(CLD),
                 0xf8 => StubAddressing(SED),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode

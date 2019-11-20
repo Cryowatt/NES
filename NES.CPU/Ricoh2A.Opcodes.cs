@@ -52,11 +52,18 @@ namespace NES.CPU
         public void BRK() { }
         public bool BVC() => !this.regs.Overflow;
         public bool BVS() => this.regs.Overflow;
-        public void CLC() { }
-        public void CLD() { }
-        public void CLI() { }
-        public void CLV() { }
-        public void CMP() { }
+        public void CLC() => this.regs.Carry = 0;
+        public void CLD() => this.regs.Decimal = false;
+        public void CLI() => this.regs.InterruptDisable = false;
+        public void CLV() => this.regs.Overflow = false;
+        public void CMP(byte operand)
+        {
+            var result = this.regs.A - operand;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)result) & StatusFlags.Negative);
+            this.regs.Carry = (byte)(result > byte.MaxValue ? 1 : 0);
+            this.regs.Zero = (byte)result == 0;
+        }
         public void CPX() { }
         public void CPY() { }
         public void DEC() { }
