@@ -48,41 +48,58 @@ namespace NES.CPU
             microcode();
         }
 
+        private IEnumerable<object> AbsoluteAddressing(Action<byte> microcode)
+        {
+
+
+            // 2    PC     R  fetch low byte of address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3    PC     R  fetch high byte of address, increment PC
+            address.High = Read(this.regs.PC++);
+            yield return null;
+
+            // 4  address  R  read from effective address
+            var operand = Read(address);
+            microcode(operand);
+            yield return null;
+        }
+
+        private IEnumerable<object> ZeroPageAddressing(Action<byte> microcode)
+        {
+            // 2    PC     R  fetch address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3  address  R  read from effective address
+            var operand = Read(address);
+            microcode(operand);
+            yield return null;
+        }
+
         private IEnumerable<object> RelativeAddressing(Func<bool> microcode)
         {
             //2     PC      R  fetch operand, increment PC
             var operand = Read(this.regs.PC++);
             yield return null;
-            //3     PC      R  Fetch opcode of next instruction,
-            //                 If branch is taken, add operand to PCL.
-            //                 Otherwise increment PC.
-            Read(this.regs.PC);
-            var jumpAddress = (Address)(this.regs.PC + (sbyte)operand);
-            if (!microcode())
+
+            if (microcode())
             {
-                this.regs.PC++;
-                yield return null;
-            }
-            else
-            {
+                //3     PC      R  Fetch opcode of next instruction,
+                //                 If branch is taken, add operand to PCL.
+                //                 Otherwise increment PC.
+                Read(this.regs.PC);
+                var jumpAddress = (Address)(this.regs.PC + (sbyte)operand);
                 this.regs.PC.Low = jumpAddress.Low;
                 yield return null;
 
-                //4+    PC*     R  Fetch opcode of next instruction.
-                //                 Fix PCH. If it did not change, increment PC.
-                Read(this.regs.PC);
-                yield return null;
-
-                if (this.regs.PC.High == jumpAddress.High)
+                if (this.regs.PC.High != jumpAddress.High)
                 {
-                    this.regs.PC++;
-                }
-                else
-                {
+                    //4+    PC*     R  Fetch opcode of next instruction.
+                    //                 Fix PCH. If it did not change, increment PC.
+                    Read(this.regs.PC);
                     this.regs.PC.High = jumpAddress.High;
-                    //5!    PC      R  Fetch opcode of next instruction,
-                    //                 increment PC.
-                    Read(this.regs.PC++);
                     yield return null;
                 }
             }

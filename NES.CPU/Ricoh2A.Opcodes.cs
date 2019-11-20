@@ -37,16 +37,21 @@ namespace NES.CPU
             return (byte)result;
         }
 
-        public bool BCC() => this.regs.Carry > 0;
-        public void BCS() { }
-        public void BEQ() { }
-        public void BIT() { }
-        public void BMI() { }
-        public void BNE() { }
-        public void BPL() { }
+        public bool BCC() => this.regs.Carry == 0;
+        public bool BCS() => this.regs.Carry == 1;
+        public bool BEQ() => this.regs.Zero;
+        public void BIT(byte operand)
+        {
+            const StatusFlags mask = StatusFlags.Negative | StatusFlags.Overflow;
+            this.regs.P = (this.regs.P & ~mask) | (((StatusFlags)operand) & mask);
+            this.regs.Zero = (operand & this.regs.A) == 0;
+        }
+        public bool BMI() => this.regs.Negative;
+        public bool BNE() => !this.regs.Zero;
+        public bool BPL() => !this.regs.Negative;
         public void BRK() { }
-        public void BVC() { }
-        public void BVS() { }
+        public bool BVC() => !this.regs.Overflow;
+        public bool BVS() => this.regs.Overflow;
         public void CLC() { }
         public void CLD() { }
         public void CLI() { }

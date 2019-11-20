@@ -58,7 +58,7 @@ namespace NES.CPU
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+04  NOP*    BIT     NOP*    NOP*    STY     LDY     CPY     CPX     Zeropage
                 //0x04 => StubAddressing(NOP),
-                0x24 => StubAddressing(BIT),
+                0x24 => ZeroPageAddressing(BIT),
                 //0x44 => StubAddressing(NOP),
                 //0x64 => StubAddressing(NOP),
                 0x84 => StubAddressing(STY),
@@ -146,7 +146,7 @@ namespace NES.CPU
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+0c  NOP*    BIT     JMP     JMP ()  STY     LDY     CPY     CPX     Absolute
                 //0x0c => StubAddressing(NOP),
-                0x2c => StubAddressing(BIT),
+                0x2c => AbsoluteAddressing(BIT),
                 0x4c => StubAddressing(JMP),
                 0x6c => StubAddressing(JMP),
                 0x8c => StubAddressing(STY),
@@ -189,14 +189,14 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+10  BPL     BMI     BVC     BVS     BCC     BCS     BNE     BEQ     Relative
-                0x10 => StubAddressing(BPL),
-                0x30 => StubAddressing(BMI),
-                0x50 => StubAddressing(BVC),
-                0x70 => StubAddressing(BVS),
+                0x10 => RelativeAddressing(BPL),
+                0x30 => RelativeAddressing(BMI),
+                0x50 => RelativeAddressing(BVC),
+                0x70 => RelativeAddressing(BVS),
                 0x90 => RelativeAddressing(BCC),
-                0xb0 => StubAddressing(BCS),
-                0xd0 => StubAddressing(BNE),
-                0xf0 => StubAddressing(BEQ),
+                0xb0 => RelativeAddressing(BCS),
+                0xd0 => RelativeAddressing(BNE),
+                0xf0 => RelativeAddressing(BEQ),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+11  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     (indir),y
