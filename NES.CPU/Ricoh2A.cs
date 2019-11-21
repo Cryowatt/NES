@@ -32,22 +32,6 @@ namespace NES.CPU
         private IEnumerable<object> StubAddressing(Action<byte> microcode) => throw new NotImplementedException();
         private IEnumerable<object> StubAddressing(Func<byte, byte> microcode) => throw new NotImplementedException();
 
-        private IEnumerable<object> AccumulatorAddressing(Func<byte, byte> microcode)
-        {
-            //PC:R  read next instruction byte(and throw it away)
-            Read(this.regs.PC);
-            yield return null;
-            this.regs.A = microcode(this.regs.A);
-        }
-
-        private IEnumerable<object> ImpliedAddressing(Action microcode)
-        {
-            //PC:R  read next instruction byte(and throw it away)
-            Read(this.regs.PC);
-            yield return null;
-            microcode();
-        }
-
         private IEnumerable<object> AbsoluteAddressing(Action<byte> microcode)
         {
 
@@ -66,13 +50,105 @@ namespace NES.CPU
             yield return null;
         }
 
-        private IEnumerable<object> ZeroPageAddressing(Action<byte> microcode)
+        private IEnumerable<object> AbsoluteIndexedAddressing(Action<byte> microcode, byte index)
         {
-            // 2    PC     R  fetch address, increment PC
+            // 2     PC      R  fetch low byte of address, increment PC
             Address address = Read(this.regs.PC++);
             yield return null;
 
-            // 3  address  R  read from effective address
+            // 3     PC      R  fetch high byte of address,
+            //                  add index register to low address byte,
+            //                  increment PC
+            address.High = Read(this.regs.PC++);
+            var offset = address.Low + index;
+            address.Low = (byte)offset;
+            yield return null;
+
+            // 4  address+I* R  read from effective address,
+            //                  fix the high byte of effective address
+            Read(address);
+            address.Ptr += (ushort)(offset & 0xff00);
+            yield return null;
+
+            // 5+ address+I  R  re-read from effective address
+            var operand = Read(address);
+            microcode(operand);
+            yield return null;
+        }
+
+        private IEnumerable<object> AccumulatorAddressing(Func<byte, byte> microcode)
+        {
+            //PC:R  read next instruction byte(and throw it away)
+            Read(this.regs.PC);
+            this.regs.A = microcode(this.regs.A);
+            yield return null;
+        }
+
+        private IEnumerable<object> ImmediateAddressing(Action<byte> microcode)
+        {
+            //2    PC     R  fetch value, increment PC
+            var operand = Read(this.regs.PC);
+            microcode(operand);
+            yield return null;
+        }
+
+        private IEnumerable<object> ImpliedAddressing(Action microcode)
+        {
+            //PC:R  read next instruction byte(and throw it away)
+            Read(this.regs.PC);
+            microcode();
+            yield return null;
+        }
+
+        public IEnumerable<object> IndirectXAddressing(Action<byte> microcode)
+        {
+            // 2      PC       R  fetch pointer address, increment PC
+            Address pointer = Read(this.regs.PC++);
+            yield return null;
+
+            // 3    pointer    R  read from the address, add X to it
+            Read(pointer);
+            pointer += this.regs.X;
+            yield return null;
+
+            // 4   pointer+X   R  fetch effective address low
+            Address address = Read(pointer);
+            yield return null;
+
+            // 5  pointer+X+1  R  fetch effective address high
+            address.High = Read(pointer + 1);
+            yield return null;
+
+            // 6    address    R  read from effective address
+            var operand = Read(address);
+            microcode(operand);
+            yield return null;
+        }
+
+        public IEnumerable<object> IndirectYAddressing(Action<byte> microcode)
+        {
+            // 2      PC       R  fetch pointer address, increment PC
+            Address pointer = Read(this.regs.PC++);
+            yield return null;
+
+            // 3    pointer    R  fetch effective address low
+            Address address = Read(pointer);
+            yield return null;
+
+            // 4   pointer+1   R  fetch effective address high,
+            //                    add Y to low byte of effective address
+            address.High = Read(pointer + 1);
+            var low = address.Low + this.regs.Y;
+            address.Low += (byte)low;
+            yield return null;
+
+            // 5   address+Y*  R  read from effective address,
+            //                    fix high byte of effective address
+            Read(address);
+            address.Ptr += (ushort)(low & 0xff00);
+            yield return null;
+
+            // 6+  address+Y   R  read from effective address
             var operand = Read(address);
             microcode(operand);
             yield return null;
@@ -103,6 +179,35 @@ namespace NES.CPU
                     yield return null;
                 }
             }
+        }
+
+        private IEnumerable<object> ZeroPageAddressing(Action<byte> microcode)
+        {
+            // 2    PC     R  fetch address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3  address  R  read from effective address
+            var operand = Read(address);
+            microcode(operand);
+            yield return null;
+        }
+
+        private IEnumerable<object> ZeroPageIndexedAddressing(Action<byte> microcode, byte index)
+        {
+            // 2     PC R  fetch address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3   address R  read from address, add index register to it
+            Read((Address)address);
+            address.Low += index;
+            yield return null;
+
+            // 4  address+I* R  read from effective address
+            var operand = Read(address);
+            microcode(operand);
+            yield return null;
         }
 
         public IEnumerable<object> Process()
