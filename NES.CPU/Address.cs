@@ -34,6 +34,8 @@ namespace NES.CPU
             return this.Ptr;
         }
 
+        public static Address operator +(Address address, byte offset) => (Address)(address.Ptr + offset);
+
         public static Address operator ++(Address address)
         {
             address.Ptr++;
