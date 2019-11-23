@@ -10,18 +10,18 @@ namespace NES.CPU.Tests
         [InlineData(0x1230, 0xfff0, 0x1230)]
         [InlineData(0x1230, 0xfff0, 0x123F)]
         [Theory]
-        public void MaskContainsAddress(ushort baseAddress, ushort mask, ushort testAddress)
+        public void MaskContainsAddress(ushort start, ushort end, ushort testAddress)
         {
-            Assert.True(new AddressMask(baseAddress, mask).Contains(testAddress));
+            Assert.True(new AddressRange(start, end).Contains(testAddress));
         }
 
         [InlineData(0x0000, 0xffff, 0xffff)]
         [InlineData(0x1230, 0xfff0, 0x122f)]
         [InlineData(0x1230, 0xfff0, 0x1240)]
         [Theory]
-        public void MaskDoesNotContainsAddress(ushort baseAddress, ushort mask, ushort testAddress)
+        public void MaskDoesNotContainsAddress(ushort start, ushort end, ushort testAddress)
         {
-            Assert.False(new AddressMask(baseAddress, mask).Contains(testAddress));
+            Assert.False(new AddressRange(start, end).Contains(testAddress));
         }
     }
 }

@@ -2,7 +2,7 @@
 {
     public interface IBusDevice
     {
-        AddressMask AddressMask { get; }
+        AddressRange AddressRange { get; }
 
         byte Read(Address address);
 

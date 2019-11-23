@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace NES.CPU
 {
     [StructLayout(LayoutKind.Explicit)]
-    public struct Address : IEquatable<Address>
+    public struct Address : IEquatable<Address>, IComparable<Address>
     {
         [FieldOffset(0)]
         public ushort Ptr;
@@ -35,6 +35,7 @@ namespace NES.CPU
         }
 
         public static Address operator +(Address address, byte offset) => (Address)(address.Ptr + offset);
+        public static Address operator +(Address address, ushort offset) => (Address)(address.Ptr + offset);
 
         public static Address operator ++(Address address)
         {
@@ -58,6 +59,11 @@ namespace NES.CPU
         public override string ToString()
         {
             return string.Format("0x{0:X4}", this.Ptr);
+        }
+
+        public int CompareTo(Address other)
+        {
+            return (int)this.Ptr - (int)other.Ptr;
         }
     }
 }

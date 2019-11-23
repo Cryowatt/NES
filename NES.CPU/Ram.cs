@@ -4,24 +4,22 @@
     {
         private byte[] memory;
 
-        public Ram(AddressMask addressMask, int size)
+        public Ram(AddressRange addressRange, int size)
         {
-            this.AddressMask = addressMask;
+            this.AddressRange = addressRange;
             this.memory = new byte[size];
         }
 
-        public AddressMask AddressMask { get; private set; }
+        public AddressRange AddressRange { get; private set; }
 
         public byte Read(Address address)
         {
-            var memoryAddress = address - AddressMask.Address;
-            return this.memory[memoryAddress];
+            return this.memory[address % this.memory.Length];
         }
 
         public void Write(Address address, byte value)
         {
-            var memoryAddress = address - AddressMask.Address;
-            this.memory[memoryAddress] = value;
+            this.memory[address % this.memory.Length] = value;
         }
     }
 }
