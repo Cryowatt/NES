@@ -1,17 +1,14 @@
-﻿using System;
-using System.Runtime.InteropServices;
-
-namespace NES.CPU
+﻿namespace NES.CPU
 {
     public struct AddressRange
     {
         public readonly Address StartAddress;
         public readonly Address EndAddress;
 
-        public AddressRange(Address address, ushort length)
+        public AddressRange(Address startAddress, Address endAddress)
         {
-            this.StartAddress = address;
-            this.EndAddress = address + length;
+            this.StartAddress = startAddress;
+            this.EndAddress = endAddress;
         }
 
         public bool Contains(Address address) => (this.StartAddress <= address) && (address <= this.EndAddress);

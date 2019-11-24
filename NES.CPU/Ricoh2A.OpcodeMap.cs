@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace NES.CPU
 {
@@ -117,7 +116,7 @@ namespace NES.CPU
                 0x49 => StubAddressing(EOR),
                 0x69 => ImmediateAddressing(ADC),
                 //0x89 => StubAddressing(NOP),
-                0xa9 => StubAddressing(LDA),
+                0xa9 => ImmediateAddressing(LDA),
                 0xc9 => StubAddressing(CMP),
                 0xe9 => StubAddressing(SBC),
 
@@ -147,8 +146,8 @@ namespace NES.CPU
                 //+0c  NOP*    BIT     JMP     JMP ()  STY     LDY     CPY     CPX     Absolute
                 //0x0c => StubAddressing(NOP),
                 0x2c => AbsoluteAddressing(BIT),
-                0x4c => StubAddressing(JMP),
-                0x6c => StubAddressing(JMP),
+                0x4c => AbsoluteAddressing((Action<Address>)JMP),
+                0x6c => AbsoluteIndirectAddressing(JMP),
                 0x8c => StubAddressing(STY),
                 0xac => StubAddressing(LDY),
                 0xcc => StubAddressing(CPY),
@@ -160,7 +159,7 @@ namespace NES.CPU
                 0x2d => StubAddressing(AND),
                 0x4d => StubAddressing(EOR),
                 0x6d => AbsoluteAddressing(ADC),
-                0x8d => StubAddressing(STA),
+                0x8d => AbsoluteAddressing(STA),
                 0xad => StubAddressing(LDA),
                 0xcd => StubAddressing(CMP),
                 0xed => StubAddressing(SBC),
@@ -280,7 +279,7 @@ namespace NES.CPU
                 0x18 => ImpliedAddressing(CLC),
                 0x38 => StubAddressing(SEC),
                 0x58 => ImpliedAddressing(CLI),
-                0x78 => StubAddressing(SEI),
+                0x78 => ImpliedAddressing(SEI),
                 0x98 => StubAddressing(TYA),
                 0xb8 => ImpliedAddressing(CLV),
                 0xd8 => ImpliedAddressing(CLD),

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-
-namespace NES.CPU
+﻿namespace NES.CPU
 {
     public partial class Ricoh2A
     {
@@ -78,9 +74,9 @@ namespace NES.CPU
         public void INC() { }
         public void INX() { }
         public void INY() { }
-        public void JMP() { }
+        public void JMP(Address address) { this.regs.PC = address; }
         public void JSR() { }
-        public void LDA() { }
+        public void LDA(byte operand) { this.regs.A = operand; }
         public void LDX() { }
         public void LDY() { }
 
@@ -121,8 +117,8 @@ namespace NES.CPU
         public void SBC() { }
         public void SEC() { }
         public void SED() { }
-        public void SEI() { }
-        public void STA() { }
+        public void SEI() { this.regs.InterruptDisable = true; }
+        public byte STA() { return this.regs.A; }
         public void STX() { }
         public void STY() { }
         public void TAX()

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace NES.CPU
@@ -30,12 +29,11 @@ namespace NES.CPU
         // This will be deleted later
         private IEnumerable<object> StubAddressing(Action microcode) => throw new NotImplementedException();
         private IEnumerable<object> StubAddressing(Action<byte> microcode) => throw new NotImplementedException();
+        private IEnumerable<object> StubAddressing(Func<byte> microcode) => throw new NotImplementedException();
         private IEnumerable<object> StubAddressing(Func<byte, byte> microcode) => throw new NotImplementedException();
 
         private IEnumerable<object> AbsoluteAddressing(Action<byte> microcode)
         {
-
-
             // 2    PC     R  fetch low byte of address, increment PC
             Address address = Read(this.regs.PC++);
             yield return null;
@@ -47,6 +45,53 @@ namespace NES.CPU
             // 4  address  R  read from effective address
             var operand = Read(address);
             microcode(operand);
+            yield return null;
+        }
+
+        private IEnumerable<object> AbsoluteAddressing(Func<byte> microcode)
+        {
+            // 2    PC     R  fetch low byte of address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3    PC     R  fetch high byte of address, increment PC
+            address.High = Read(this.regs.PC++);
+            yield return null;
+
+            // 4  address  W  write register to effective address
+            Write(address, microcode());
+            yield return null;
+        }
+
+        private IEnumerable<object> AbsoluteAddressing(Action<Address> microcode)
+        {
+            // 2    PC     R  fetch low address byte, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+            // 3    PC     R  copy low address byte to PCL, fetch high address
+            //                byte to PCH
+            address.High = Read(this.regs.PC++);
+            microcode(address);
+            yield return null;
+        }
+
+        private IEnumerable<object> AbsoluteIndirectAddressing(Action<Address> microcode)
+        {
+            //      2     PC      R  fetch pointer address low, increment PC
+            Address pointer = Read(this.regs.PC++);
+            yield return null;
+
+            //      3     PC      R  fetch pointer address high, increment PC
+            pointer.High = Read(this.regs.PC++);
+            yield return null;
+
+            //      4   pointer   R  fetch low address to latch
+            Address address = Read(pointer);
+            yield return null;
+
+            //      5  pointer+1* R  fetch PCH, copy latch to PCL
+            address.High = Read(pointer + 1);
+            microcode(address);
             yield return null;
         }
 
@@ -258,9 +303,7 @@ namespace NES.CPU
             }
         }
 
-        private byte Read(Address address)
-        {
-            return 0;
-        }
+        private byte Read(Address address) => this.bus.Read(address);
+        private void Write(Address address, byte value) => this.bus.Write(address, value);
     }
 }

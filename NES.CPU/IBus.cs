@@ -2,6 +2,7 @@
 {
     public interface IBus
     {
-        void Write(Address ptr, byte value);
+        byte Read(Address address);
+        void Write(Address address, byte value);
     }
 }

@@ -16,7 +16,7 @@ namespace NES.CPU.Tests
             {
                 var romFile = RomImage.From(reader);
                 var cpu = new Ricoh2A(new NesBus(new Mapper0(romFile)));
-                cpu.Process().Take(4).ToList();
+                cpu.Process().Take(100).ToList();
             }
         }
     }
