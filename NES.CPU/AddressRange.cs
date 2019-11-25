@@ -15,7 +15,7 @@
 
         public override string ToString()
         {
-            return string.Format("0x{0:X4}::0x{1:X4}", this.StartAddress, this.EndAddress);
+            return string.Format("${0:X4}::${1:X4}", this.StartAddress, this.EndAddress);
         }
     }
 }

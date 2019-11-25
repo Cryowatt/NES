@@ -36,6 +36,7 @@ namespace NES.CPU
 
         public static Address operator +(Address address, byte offset) => (Address)(address.Ptr + offset);
         public static Address operator +(Address address, ushort offset) => (Address)(address.Ptr + offset);
+        public static Address operator +(Address address, int offset) => (Address)(address.Ptr + offset);
 
         public static Address operator ++(Address address)
         {
@@ -58,7 +59,7 @@ namespace NES.CPU
 
         public override string ToString()
         {
-            return string.Format("0x{0:X4}", this.Ptr);
+            return string.Format("${0:X4}", this.Ptr);
         }
 
         public int CompareTo(Address other)

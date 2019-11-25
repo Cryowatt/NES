@@ -1,4 +1,6 @@
-﻿namespace NES.CPU
+﻿using System.Collections.Generic;
+
+namespace NES.CPU
 {
     public partial class Ricoh2A
     {
@@ -45,7 +47,36 @@
         public bool BMI() => this.regs.Negative;
         public bool BNE() => !this.regs.Zero;
         public bool BPL() => !this.regs.Negative;
-        public void BRK() { }
+        public IEnumerable<object> BRK()
+        {
+            // 2    PC     R  read next instruction byte (and throw it away),
+            //                increment PC
+            this.Read(this.regs.PC++);
+            yield return null;
+
+            // 3  $0100,S  W  push PCH on stack (with B flag set), decrement S
+            this.Write(this.Stack, this.regs.PC.High);
+            this.regs.S--;
+            yield return null;
+
+            // 4  $0100,S  W  push PCL on stack, decrement S
+            this.Write(this.Stack, this.regs.PC.Low);
+            this.regs.S--;
+            yield return null;
+
+            // 5  $0100,S  W  push P on stack, decrement S
+            this.Write(this.Stack, (byte)this.regs.P);
+            this.regs.S--;
+            yield return null;
+
+            // 6   $FFFE   R  fetch PCL
+            this.regs.PC.Low = this.Read(0xfffe);
+            yield return null;
+
+            // 7   $FFFF   R  fetch PCH
+            this.regs.PC.High = this.Read(0xffff);
+            yield return null;
+        }
         public bool BVC() => !this.regs.Overflow;
         public bool BVS() => this.regs.Overflow;
         public void CLC() => this.regs.Carry = 0;
@@ -67,19 +98,84 @@
         public void DEX()
         {
             this.regs.X--;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.X == 0;
         }
 
         public void DEY() { }
         public void EOR() { }
-        public void INC() { }
-        public void INX() { }
-        public void INY() { }
+        public byte INC(byte operand)
+        {
+            var result = operand + 1;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)result) & StatusFlags.Negative);
+            this.regs.Zero = result == 0;
+            return (byte)result;
+        }
+        public void INX()
+        {
+            this.regs.X += 1;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.X == 0;
+        }
+        public void INY()
+        {
+            this.regs.Y += 1;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.Y) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.Y == 0;
+        }
         public void JMP(Address address) { this.regs.PC = address; }
-        public void JSR() { }
-        public void LDA(byte operand) { this.regs.A = operand; }
-        public void LDX() { }
-        public void LDY() { }
+        public IEnumerable<object> JSR()
+        {
+            // 2    PC     R  fetch low address byte, increment PC
+            Address addrss = this.Read(this.regs.PC++);
+            yield return null;
 
+            // 3  $0100,S  R  internal operation (predecrement S?)
+            this.Read(this.Stack);
+            this.regs.S--;
+            yield return null;
+
+            // 4  $0100,S  W  push PCH on stack, decrement S
+            this.Write(this.Stack, this.regs.PC.High);
+            this.regs.S--;
+            yield return null;
+
+            // 5  $0100,S  W  push PCL on stack, decrement S
+            this.Write(this.Stack, this.regs.PC.Low);
+            this.regs.S--;
+            yield return null;
+
+            // 6    PC     R  copy low address byte to PCL, fetch high address
+            //                byte to PCH
+            addrss.High = this.Read(this.regs.PC);
+            this.regs.PC = addrss;
+            yield return null;
+        }
+        public void LDA(byte operand)
+        {
+            this.regs.A = operand;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.A) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.A == 0;
+        }
+        public void LDX(byte operand)
+        {
+            this.regs.X = operand;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.X == 0;
+        }
+        public void LDY(byte operand)
+        {
+            this.regs.Y = operand;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.Y) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.Y == 0;
+        }
         public byte LSR(byte operand)
         {
             this.regs.Carry = (byte)(operand & 0x01);
@@ -112,29 +208,91 @@
             return (byte)result;
         }
 
-        public void RTI() { }
-        public void RTS() { }
+        public IEnumerable<object> RTI()
+        {
+            // 2    PC     R  read next instruction byte (and throw it away)
+            this.Read(this.regs.PC);
+            yield return null;
+
+            // 3  $0100,S  R  increment S
+            this.Read(this.Stack);
+            this.regs.S++;
+            yield return null;
+
+            // 4  $0100,S  R  pull P from stack, increment S
+            this.regs.P = (StatusFlags)this.Read(this.Stack);
+            this.regs.S++;
+            yield return null;
+
+            // 5  $0100,S  R  pull PCL from stack, increment S
+            this.regs.PC.Low = this.Read(this.Stack);
+            this.regs.S++;
+            yield return null;
+
+            // 6  $0100,S  R  pull PCH from stack
+            this.regs.PC.High = this.Read(this.Stack);
+            yield return null;
+        }
+        public IEnumerable<object> RTS()
+        {
+            // 2    PC     R  read next instruction byte (and throw it away)
+            this.Read(this.regs.PC);
+            yield return null;
+
+            // 3  $0100,S  R  increment S
+            this.Read(this.Stack);
+            this.regs.S++;
+            yield return null;
+
+            // 4  $0100,S  R  pull PCL from stack, increment S
+            this.regs.PC.Low = this.Read(this.Stack);
+            this.regs.S++;
+            yield return null;
+
+            // 5  $0100,S  R  pull PCH from stack
+            this.regs.PC.High = this.Read(this.Stack);
+            yield return null;
+
+            // 6    PC     R  increment PC
+            this.Read(this.regs.PC++);
+            yield return null;
+        }
         public void SBC() { }
         public void SEC() { }
         public void SED() { }
         public void SEI() { this.regs.InterruptDisable = true; }
         public byte STA() { return this.regs.A; }
-        public void STX() { }
-        public void STY() { }
+        public byte STX() { return this.regs.X; }
+        public byte STY() { return this.regs.Y; }
         public void TAX()
         {
             this.regs.X = this.regs.A;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.X == 0;
         }
-
         public void TAY() { }
-        public void TSX() { }
-
+        public void TSX()
+        {
+            this.regs.X = this.regs.S;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.X == 0;
+        }
         public void TXA()
         {
             this.regs.A = this.regs.X;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.A) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.A == 0;
         }
-
-        public void TXS() { }
+        public void TXS()
+        {
+            this.regs.S = this.regs.X;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
+                (((StatusFlags)this.regs.S) & StatusFlags.Negative);
+            this.regs.Zero = this.regs.S == 0;
+        }
         public void TYA() { }
     }
 }

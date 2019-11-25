@@ -10,13 +10,15 @@ namespace NES.CPU.Tests
     public class RomTests
     {
         [Fact]
-        public void Test()
+        public void Basics()
         {
             using (var reader = new BinaryReader(File.OpenRead("TestRoms/01-basics.nes")))
             {
                 var romFile = RomImage.From(reader);
                 var cpu = new Ricoh2A(new NesBus(new Mapper0(romFile)));
-                cpu.Process().Take(100).ToList();
+                foreach (var cycle in cpu.Process().Take(10000000))
+                {
+                }
             }
         }
     }

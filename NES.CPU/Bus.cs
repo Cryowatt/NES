@@ -38,7 +38,8 @@ namespace NES.CPU
 
         public byte Read(Address ptr)
         {
-            return this.devices.FirstOrDefault(o => o.AddressRange.Contains(ptr))?.Read(ptr) ?? this.lastWrite;
+            var result = this.devices.FirstOrDefault(o => o.AddressRange.Contains(ptr))?.Read(ptr) ?? this.lastWrite;
+            return result;
         }
 
         public void Write(Address ptr, byte value)

@@ -21,16 +21,18 @@ namespace NES.CPU
 
         private CpuRegisters regs;
 
+        private Address Stack => (Address)0x0100 + this.regs.S;
+
         public void STP()
         {
             throw new InvalidOperationException();
         }
 
         // This will be deleted later
-        private IEnumerable<object> StubAddressing(Action microcode) => throw new NotImplementedException();
-        private IEnumerable<object> StubAddressing(Action<byte> microcode) => throw new NotImplementedException();
-        private IEnumerable<object> StubAddressing(Func<byte> microcode) => throw new NotImplementedException();
-        private IEnumerable<object> StubAddressing(Func<byte, byte> microcode) => throw new NotImplementedException();
+        private IEnumerable<object> StubAddressing(Action microcode) => throw new NotImplementedException(microcode.Method.Name);
+        private IEnumerable<object> StubAddressing(Action<byte> microcode) => throw new NotImplementedException(microcode.Method.Name);
+        private IEnumerable<object> StubAddressing(Func<byte> microcode) => throw new NotImplementedException(microcode.Method.Name);
+        private IEnumerable<object> StubAddressing(Func<byte, byte> microcode) => throw new NotImplementedException(microcode.Method.Name);
 
         private IEnumerable<object> AbsoluteAddressing(Action<byte> microcode)
         {
@@ -60,6 +62,31 @@ namespace NES.CPU
 
             // 4  address  W  write register to effective address
             Write(address, microcode());
+            yield return null;
+        }
+
+        private IEnumerable<object> AbsoluteAddressing(Func<byte, byte> microcode)
+        {
+            // 2    PC     R  fetch low byte of address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3    PC     R  fetch high byte of address, increment PC
+            address.High = Read(this.regs.PC++);
+            yield return null;
+
+            // 4  address  R  read from effective address
+            var operand = Read(address);
+            yield return null;
+
+            // 5  address  W  write the value back to effective address,
+            //                and do the operation on it
+            Write(address, operand);
+            var result = microcode(operand);
+            yield return null;
+
+            // 6  address  W  write the new value to effective address
+            Write(address, result);
             yield return null;
         }
 
@@ -121,6 +148,31 @@ namespace NES.CPU
             yield return null;
         }
 
+        private IEnumerable<object> AbsoluteIndexedAddressing(Func<byte> microcode, byte index)
+        {
+            // 2     PC      R  fetch low byte of address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3     PC      R  fetch high byte of address,
+            //                  add index register to low address byte,
+            //                  increment PC
+            address.High = Read(this.regs.PC++);
+            var offset = address.Low + index;
+            address.Low = (byte)offset;
+            yield return null;
+
+            // 4  address+I* R  read from effective address,
+            //                  fix the high byte of effective address
+            Read(address);
+            address.Ptr += (ushort)(offset & 0xff00);
+            yield return null;
+
+            //5  address+I  W  write to effective address
+            Write(address, microcode());
+            yield return null;
+        }
+
         private IEnumerable<object> AccumulatorAddressing(Func<byte, byte> microcode)
         {
             //PC:R  read next instruction byte(and throw it away)
@@ -132,7 +184,7 @@ namespace NES.CPU
         private IEnumerable<object> ImmediateAddressing(Action<byte> microcode)
         {
             //2    PC     R  fetch value, increment PC
-            var operand = Read(this.regs.PC);
+            var operand = Read(this.regs.PC++);
             microcode(operand);
             yield return null;
         }
@@ -199,6 +251,40 @@ namespace NES.CPU
             yield return null;
         }
 
+        public IEnumerable<object> IndirectYAddressing(Func<byte> microcode)
+        {
+            // 2      PC       R  fetch pointer address, increment PC
+            Address pointer = Read(this.regs.PC++);
+            yield return null;
+
+            // 3    pointer    R  fetch effective address low
+            Address address = Read(pointer++);
+            yield return null;
+
+            // 4   pointer+1   R  fetch effective address high,
+            //                    add Y to low byte of effective address
+            address.High = Read(pointer);
+            var low = address.Low + this.regs.Y;
+            address.Low += (byte)low;
+            yield return null;
+
+            // 5   address+Y*  R  read from effective address,
+            //                    fix high byte of effective address
+            Read(address);
+            address.Ptr += (ushort)(low & 0xff00);
+            yield return null;
+
+            // 6   address+Y   W  write to effective address
+            Write(address, microcode());
+            yield return null;
+
+            //Notes: The effective address is always fetched from zero page,
+            //       i.e. the zero page boundary crossing is not handled.
+
+            //       * The high byte of the effective address may be invalid
+            //         at this time, i.e. it may be smaller by $100.
+        }
+
         private IEnumerable<object> RelativeAddressing(Func<bool> microcode)
         {
             //2     PC      R  fetch operand, increment PC
@@ -238,6 +324,38 @@ namespace NES.CPU
             yield return null;
         }
 
+        private IEnumerable<object> ZeroPageAddressing(Func<byte> microcode)
+        {
+            // 2    PC     R  fetch address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3  address  W  write register to effective address
+            Write(address, microcode());
+            yield return null;
+        }
+
+        private IEnumerable<object> ZeroPageAddressing(Func<byte, byte> microcode)
+        {
+            // 2    PC     R  fetch address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3  address  R  read from effective address
+            var operand = Read(address);
+            yield return null;
+
+            // 4  address  W  write the value back to effective address,
+            //                and do the operation on it
+            Write(address, operand);
+            var result = microcode(operand);
+            yield return null;
+
+            // 5  address  W  write the new value to effective address
+            Write(address, result);
+            yield return null;
+        }
+
         private IEnumerable<object> ZeroPageIndexedAddressing(Action<byte> microcode, byte index)
         {
             // 2     PC R  fetch address, increment PC
@@ -255,26 +373,47 @@ namespace NES.CPU
             yield return null;
         }
 
+        private IEnumerable<object> ZeroPageIndexedAddressing(Func<byte> microcode, byte index)
+        {
+            // 2     PC      R  fetch address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return null;
+
+            // 3   address   R  read from address, add index register to it
+            Read((Address)address);
+            address.Low += index;
+            yield return null;
+
+            // 4  address+I* W  write to effective address
+            Write(address, microcode());
+            yield return null;
+
+            //Notes: I denotes either index register (X or Y).
+
+            //       * The high byte of the effective address is always zero,
+            //         i.e. page boundary crossings are not handled.
+        }
+
         public IEnumerable<object> Process()
         {
             //$4017 = $00 (frame irq enabled)
-            this.bus.Write(0x4017, 0);
+            this.Write(0x4017, 0);
             yield return null;
             //$4015 = $00 (all channels disabled)
-            this.bus.Write(0x4015, 0);
+            this.Write(0x4015, 0);
             yield return null;
 
             //$4000-$400F = $00
             for (Address address = 0x4000; address <= 0x400f; address++)
             {
-                this.bus.Write(address, 0);
+                this.Write(address, 0);
                 yield return null;
             }
 
             //$4010-$4013 = $00 [6]
             for (Address address = 0x4010; address <= 0x4013; address++)
             {
-                this.bus.Write(address, 0);
+                this.Write(address, 0);
                 yield return null;
             }
 
@@ -294,6 +433,7 @@ namespace NES.CPU
                 // PC:R  fetch opcode, increment PC
                 byte opcode = Read(this.regs.PC++);
                 yield return null;
+
                 IEnumerable<object> instructionCycles = GetMicrocode(opcode);
 
                 foreach (var cycle in instructionCycles)
