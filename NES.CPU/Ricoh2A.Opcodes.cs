@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace NES.CPU
 {
@@ -18,8 +19,7 @@ namespace NES.CPU
         public void AND(byte operand)
         {
             this.regs.A &= operand;
-            this.regs.Zero = this.regs.A == 0;
-            this.regs.P = (this.regs.P & ~StatusFlags.Negative) | ((StatusFlags)this.regs.A & StatusFlags.Negative);
+            SetResultFlags(this.regs.A);
         }
 
         public byte ASL(byte operand)
@@ -29,9 +29,7 @@ namespace NES.CPU
             {
                 this.regs.Carry = 1;
             }
-            this.regs.P = (this.regs.P & ~StatusFlags.Negative) |
-                (((StatusFlags)result) & StatusFlags.Negative);
-            this.regs.Zero = (byte)result == 0;
+            SetResultFlags((byte)result);
             return (byte)result;
         }
 
@@ -83,50 +81,32 @@ namespace NES.CPU
         public void CLD() => this.regs.Decimal = false;
         public void CLI() => this.regs.InterruptDisable = false;
         public void CLV() => this.regs.Overflow = false;
-        public void CMP(byte operand)
+        public void CMP(byte operand) => CMP(operand, this.regs.A);
+        private void CMP(byte operand, byte register)
         {
-            var result = this.regs.A - operand;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)result) & StatusFlags.Negative);
+            var result = register - operand;
+            SetResultFlags((byte)result);
             this.regs.Carry = (byte)(result > byte.MaxValue ? 1 : 0);
-            this.regs.Zero = (byte)result == 0;
         }
-        public void CPX() { }
-        public void CPY() { }
-        public void DEC() { }
-
-        public void DEX()
+        public void CPX(byte operand) => CMP(operand, this.regs.X);
+        public void CPY(byte operand) => CMP(operand, this.regs.Y);
+        public byte DEC(byte value)
         {
-            this.regs.X--;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.X == 0;
+            value--;
+            SetResultFlags(value);
+            return value;
         }
-
-        public void DEY() { }
-        public void EOR() { }
+        public void DEX() => this.regs.X = DEC(this.regs.X);
+        public void DEY() => this.regs.Y = DEC(this.regs.Y);
+        public void EOR() => throw new NotImplementedException();
         public byte INC(byte operand)
         {
-            var result = operand + 1;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)result) & StatusFlags.Negative);
-            this.regs.Zero = result == 0;
-            return (byte)result;
+            var result = (byte)(operand + 1);
+            SetResultFlags(result);
+            return result;
         }
-        public void INX()
-        {
-            this.regs.X += 1;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.X == 0;
-        }
-        public void INY()
-        {
-            this.regs.Y += 1;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.Y) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.Y == 0;
-        }
+        public void INX() => MOV((byte)(this.regs.X + 1), ref this.regs.X);
+        public void INY() => MOV((byte)(this.regs.Y + 1), ref this.regs.Y);
         public void JMP(Address address) { this.regs.PC = address; }
         public IEnumerable<object> JSR()
         {
@@ -136,7 +116,6 @@ namespace NES.CPU
 
             // 3  $0100,S  R  internal operation (predecrement S?)
             this.Read(this.Stack);
-            this.regs.S--;
             yield return null;
 
             // 4  $0100,S  W  push PCH on stack, decrement S
@@ -155,27 +134,9 @@ namespace NES.CPU
             this.regs.PC = addrss;
             yield return null;
         }
-        public void LDA(byte operand)
-        {
-            this.regs.A = operand;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.A) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.A == 0;
-        }
-        public void LDX(byte operand)
-        {
-            this.regs.X = operand;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.X == 0;
-        }
-        public void LDY(byte operand)
-        {
-            this.regs.Y = operand;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.Y) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.Y == 0;
-        }
+        public void LDA(byte operand) => MOV(operand, ref this.regs.A);
+        public void LDX(byte operand) => MOV(operand, ref this.regs.X);
+        public void LDY(byte operand) => MOV(operand, ref this.regs.Y);
         public byte LSR(byte operand)
         {
             this.regs.Carry = (byte)(operand & 0x01);
@@ -183,11 +144,15 @@ namespace NES.CPU
             return (byte)result;
         }
         public void NOP() { }
-        public void ORA() { }
-        public void PHA() { }
-        public void PHP() { }
-        public void PLA() { }
-        public void PLP() { }
+        public void ORA(byte operand)
+        {
+            this.regs.A &= operand;
+            SetResultFlags(this.regs.A);
+        }
+        public IEnumerable<object> PHA() => PushValue(this.regs.A);
+        public IEnumerable<object> PHP() => PushValue((byte)this.regs.P);
+        public IEnumerable<object> PLA() => PullValue(v => this.regs.A = v);
+        public IEnumerable<object> PLP() => PullValue(v => this.regs.P = (StatusFlags)v);
         public byte ROL(byte operand)
         {
             int result = (operand << 1) | this.regs.Carry;
@@ -257,42 +222,58 @@ namespace NES.CPU
             this.Read(this.regs.PC++);
             yield return null;
         }
-        public void SBC() { }
-        public void SEC() { }
-        public void SED() { }
+        public void SBC() => throw new NotImplementedException();
+        public void SEC() => throw new NotImplementedException();
+        public void SED() => throw new NotImplementedException();
         public void SEI() { this.regs.InterruptDisable = true; }
         public byte STA() { return this.regs.A; }
         public byte STX() { return this.regs.X; }
         public byte STY() { return this.regs.Y; }
-        public void TAX()
+        public void TAX() => MOV(this.regs.A, ref this.regs.X);
+        public void TAY() => MOV(this.regs.A, ref this.regs.Y);
+        public void TSX() => MOV(this.regs.S, ref this.regs.X);
+        public void TXA() => MOV(this.regs.X, ref this.regs.A);
+        public void TXS() => MOV(this.regs.X, ref this.regs.S);
+        public void TYA() => MOV(this.regs.Y, ref this.regs.A);
+
+        private void MOV(byte value, ref byte destination)
         {
-            this.regs.X = this.regs.A;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.X == 0;
+            destination = value;
+            SetResultFlags(destination);
         }
-        public void TAY() { }
-        public void TSX()
+        private IEnumerable<object> PushValue(byte value)
         {
-            this.regs.X = this.regs.S;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.X) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.X == 0;
+            // 2    PC     R  read next instruction byte (and throw it away)
+            this.Read(this.regs.PC);
+            yield return null;
+
+            // 3  $0100,S  W  push register on stack, decrement S
+            this.Write(this.Stack, value);
+            this.regs.S--;
+            yield return null;
         }
-        public void TXA()
+
+        private IEnumerable<object> PullValue(Action<byte> setter)
         {
-            this.regs.A = this.regs.X;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.A) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.A == 0;
+            // 2    PC     R  read next instruction byte (and throw it away)
+            this.Read(this.regs.PC);
+            yield return null;
+
+            // 3  $0100,S  R  increment S
+            this.Read(this.Stack);
+            this.regs.S++;
+            yield return null;
+
+            // 4  $0100,S  R  pull register from stack
+            setter(this.Read(this.Stack));
+            yield return null;
         }
-        public void TXS()
+
+        private void SetResultFlags(byte result)
         {
-            this.regs.S = this.regs.X;
-            this.regs.P = (this.regs.P & ~(StatusFlags.Negative)) |
-                (((StatusFlags)this.regs.S) & StatusFlags.Negative);
-            this.regs.Zero = this.regs.S == 0;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative | StatusFlags.Zero)) |
+                (((StatusFlags)result) & StatusFlags.Negative) |
+                (result == 0 ? StatusFlags.Zero : (StatusFlags)0);
         }
-        public void TYA() { }
     }
 }

@@ -432,6 +432,7 @@ namespace NES.CPU
             {
                 // PC:R  fetch opcode, increment PC
                 byte opcode = Read(this.regs.PC++);
+                System.Diagnostics.Debug.WriteLine("{0:X2} {1:X4}", opcode, this.regs.PC - 1);
                 yield return null;
 
                 IEnumerable<object> instructionCycles = GetMicrocode(opcode);
