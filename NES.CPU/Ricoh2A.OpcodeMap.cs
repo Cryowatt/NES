@@ -117,7 +117,7 @@ namespace NES.CPU
                 //0x89 => StubAddressing(NOP),
                 0xa9 => ImmediateAddressing(LDA),
                 0xc9 => ImmediateAddressing(CMP),
-                0xe9 => StubAddressing(SBC),
+                0xe9 => ImmediateAddressing(SBC),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+0a  ASL     ROL     LSR     ROR     TXA     TAX     DEX     NOP     Accu/imp
@@ -155,13 +155,13 @@ namespace NES.CPU
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+0d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute
                 0x0d => AbsoluteAddressing(ORA),
-                0x2d => StubAddressing(AND),
+                0x2d => AbsoluteAddressing(AND),
                 0x4d => StubAddressing(EOR),
                 0x6d => AbsoluteAddressing(ADC),
                 0x8d => AbsoluteAddressing(STA),
-                0xad => StubAddressing(LDA),
-                0xcd => StubAddressing(CMP),
-                0xed => StubAddressing(SBC),
+                0xad => AbsoluteAddressing(LDA),
+                0xcd => AbsoluteAddressing(CMP),
+                0xed => AbsoluteAddressing(SBC),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+0e  ASL     ROL     LSR     ROR     STX     LDX     DEC     INC     Absolute
@@ -330,13 +330,13 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,x
-                0x1d => StubAddressing(ORA),
-                0x3d => StubAddressing(AND),
+                0x1d => AbsoluteIndexedAddressing(ORA, this.regs.X),
+                0x3d => AbsoluteIndexedAddressing(AND, this.regs.X),
                 0x5d => StubAddressing(EOR),
                 0x7d => AbsoluteIndexedAddressing(ADC, this.regs.X),
                 0x9d => AbsoluteIndexedAddressing(STA, this.regs.X),
-                0xbd => StubAddressing(LDA),
-                0xdd => StubAddressing(CMP),
+                0xbd => AbsoluteIndexedAddressing(LDA, this.regs.X),
+                0xdd => AbsoluteIndexedAddressing(CMP, this.regs.X),
                 0xfd => StubAddressing(SBC),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode

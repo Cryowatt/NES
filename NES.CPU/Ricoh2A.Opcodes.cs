@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace NES.CPU
 {
@@ -38,9 +40,13 @@ namespace NES.CPU
         public bool BEQ() => this.regs.Zero;
         public void BIT(byte operand)
         {
-            const StatusFlags mask = StatusFlags.Negative | StatusFlags.Overflow;
-            this.regs.P = (this.regs.P & ~mask) | (((StatusFlags)operand) & mask);
-            this.regs.Zero = (operand & this.regs.A) == 0;
+            this.regs.P = (this.regs.P & ~(StatusFlags.Negative | StatusFlags.Overflow | StatusFlags.Zero)) |
+                (((StatusFlags)operand) & (StatusFlags.Negative | StatusFlags.Overflow));
+
+            if ((StatusFlags)(operand & this.regs.A) != 0)
+            {
+                this.regs.P |= StatusFlags.Zero;
+            }
         }
         public bool BMI() => this.regs.Negative;
         public bool BNE() => !this.regs.Zero;
@@ -50,6 +56,7 @@ namespace NES.CPU
             // 2    PC     R  read next instruction byte (and throw it away),
             //                increment PC
             this.Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} BRK", this.regs.PC - 1);
             yield return null;
 
             // 3  $0100,S  W  push PCH on stack (with B flag set), decrement S
@@ -84,9 +91,9 @@ namespace NES.CPU
         public void CMP(byte operand) => CMP(operand, this.regs.A);
         private void CMP(byte operand, byte register)
         {
-            var result = register - operand;
-            SetResultFlags((byte)result);
-            this.regs.Carry = (byte)(result > byte.MaxValue ? 1 : 0);
+            byte result = (byte)(register - operand);
+            SetResultFlags(result);
+            this.regs.Carry = (byte)(register >= operand ? 1 : 0);
         }
         public void CPX(byte operand) => CMP(operand, this.regs.X);
         public void CPY(byte operand) => CMP(operand, this.regs.Y);
@@ -111,7 +118,7 @@ namespace NES.CPU
         public IEnumerable<object> JSR()
         {
             // 2    PC     R  fetch low address byte, increment PC
-            Address addrss = this.Read(this.regs.PC++);
+            Address address = this.Read(this.regs.PC++);
             yield return null;
 
             // 3  $0100,S  R  internal operation (predecrement S?)
@@ -130,8 +137,9 @@ namespace NES.CPU
 
             // 6    PC     R  copy low address byte to PCL, fetch high address
             //                byte to PCH
-            addrss.High = this.Read(this.regs.PC);
-            this.regs.PC = addrss;
+            address.High = this.Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} JSR #{1}", this.regs.PC - 1, address);
+            this.regs.PC = address;
             yield return null;
         }
         public void LDA(byte operand) => MOV(operand, ref this.regs.A);
@@ -177,6 +185,7 @@ namespace NES.CPU
         {
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} RTI", this.regs.PC - 1);
             yield return null;
 
             // 3  $0100,S  R  increment S
@@ -202,6 +211,7 @@ namespace NES.CPU
         {
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} RTS", this.regs.PC - 1);
             yield return null;
 
             // 3  $0100,S  R  increment S
@@ -222,7 +232,16 @@ namespace NES.CPU
             this.Read(this.regs.PC++);
             yield return null;
         }
-        public void SBC() => throw new NotImplementedException();
+        public void SBC(byte operand) => ADC((byte)~operand);
+        //{
+        //    var result = this.regs.A - operand - (byte)(this.regs.P & StatusFlags.Carry);
+        //    this.regs.P = (this.regs.P & ~(StatusFlags.Overflow | StatusFlags.Negative)) |
+        //        (((StatusFlags)result) & StatusFlags.Negative) |
+        //        (StatusFlags)(((this.regs.A ^ result) & (operand ^ result) & (int)StatusFlags.Negative) >> 1);
+        //    this.regs.A = (byte)result;
+        //    this.regs.Carry = (byte)(result < 0 ? 1 : 0);
+        //    this.regs.Zero = this.regs.A == 0;
+        //}
         public void SEC() => throw new NotImplementedException();
         public void SED() => throw new NotImplementedException();
         public void SEI() { this.regs.InterruptDisable = true; }
@@ -241,10 +260,11 @@ namespace NES.CPU
             destination = value;
             SetResultFlags(destination);
         }
-        private IEnumerable<object> PushValue(byte value)
+        private IEnumerable<object> PushValue(byte value, [CallerMemberName] string caller = null)
         {
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} {1} #${2}", this.regs.PC - 1, caller, value);
             yield return null;
 
             // 3  $0100,S  W  push register on stack, decrement S
@@ -253,10 +273,11 @@ namespace NES.CPU
             yield return null;
         }
 
-        private IEnumerable<object> PullValue(Action<byte> setter)
+        private IEnumerable<object> PullValue(Action<byte> setter, [CallerMemberName] string caller = null)
         {
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} {1}", this.regs.PC - 1, caller);
             yield return null;
 
             // 3  $0100,S  R  increment S

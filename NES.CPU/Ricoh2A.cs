@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace NES.CPU
 {
@@ -38,6 +39,7 @@ namespace NES.CPU
         {
             // 2    PC     R  fetch low byte of address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
 
             // 3    PC     R  fetch high byte of address, increment PC
@@ -54,6 +56,7 @@ namespace NES.CPU
         {
             // 2    PC     R  fetch low byte of address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
 
             // 3    PC     R  fetch high byte of address, increment PC
@@ -69,6 +72,7 @@ namespace NES.CPU
         {
             // 2    PC     R  fetch low byte of address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
 
             // 3    PC     R  fetch high byte of address, increment PC
@@ -94,6 +98,7 @@ namespace NES.CPU
         {
             // 2    PC     R  fetch low address byte, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
             // 3    PC     R  copy low address byte to PCL, fetch high address
             //                byte to PCH
@@ -152,6 +157,7 @@ namespace NES.CPU
         {
             // 2     PC      R  fetch low byte of address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4},{3:X2}", this.regs.PC - 1, microcode.Method.Name, address, index);
             yield return null;
 
             // 3     PC      R  fetch high byte of address,
@@ -177,6 +183,7 @@ namespace NES.CPU
         {
             //PC:R  read next instruction byte(and throw it away)
             Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} {1}", this.regs.PC - 1, microcode.Method.Name);
             this.regs.A = microcode(this.regs.A);
             yield return null;
         }
@@ -185,6 +192,7 @@ namespace NES.CPU
         {
             //2    PC     R  fetch value, increment PC
             var operand = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X2}", this.regs.PC - 1, microcode.Method.Name, operand);
             microcode(operand);
             yield return null;
         }
@@ -193,6 +201,7 @@ namespace NES.CPU
         {
             //PC:R  read next instruction byte(and throw it away)
             Read(this.regs.PC);
+            Debug.WriteLine("0x{0:X4} {1}", this.regs.PC - 1, microcode.Method.Name);
             microcode();
             yield return null;
         }
@@ -255,6 +264,7 @@ namespace NES.CPU
         {
             // 2      PC       R  fetch pointer address, increment PC
             Address pointer = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4},{3:X2}", this.regs.PC - 1, microcode.Method.Name, pointer, this.regs.Y);
             yield return null;
 
             // 3    pointer    R  fetch effective address low
@@ -289,17 +299,18 @@ namespace NES.CPU
         {
             //2     PC      R  fetch operand, increment PC
             var operand = Read(this.regs.PC++);
-            yield return null;
+            Debug.WriteLine("0x{0:X4} {1} #{2:X2}", this.regs.PC - 1, microcode.Method.Name, operand);
+            //yield return null;
 
             if (microcode())
             {
                 //3     PC      R  Fetch opcode of next instruction,
                 //                 If branch is taken, add operand to PCL.
                 //                 Otherwise increment PC.
-                Read(this.regs.PC);
+                //Read(this.regs.PC);
                 var jumpAddress = (Address)(this.regs.PC + (sbyte)operand);
                 this.regs.PC.Low = jumpAddress.Low;
-                yield return null;
+                //yield return null;
 
                 if (this.regs.PC.High != jumpAddress.High)
                 {
@@ -310,12 +321,15 @@ namespace NES.CPU
                     yield return null;
                 }
             }
+
+            yield return null;
         }
 
         private IEnumerable<object> ZeroPageAddressing(Action<byte> microcode)
         {
             // 2    PC     R  fetch address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
 
             // 3  address  R  read from effective address
@@ -328,6 +342,7 @@ namespace NES.CPU
         {
             // 2    PC     R  fetch address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
 
             // 3  address  W  write register to effective address
@@ -339,6 +354,7 @@ namespace NES.CPU
         {
             // 2    PC     R  fetch address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4}", this.regs.PC - 1, microcode.Method.Name, address);
             yield return null;
 
             // 3  address  R  read from effective address
@@ -377,6 +393,7 @@ namespace NES.CPU
         {
             // 2     PC      R  fetch address, increment PC
             Address address = Read(this.regs.PC++);
+            Debug.WriteLine("0x{0:X4} {1} #{2:X4},{3:X2}", this.regs.PC - 1, microcode.Method.Name, address, index);
             yield return null;
 
             // 3   address   R  read from address, add index register to it
@@ -432,7 +449,6 @@ namespace NES.CPU
             {
                 // PC:R  fetch opcode, increment PC
                 byte opcode = Read(this.regs.PC++);
-                System.Diagnostics.Debug.WriteLine("{0:X2} {1:X4}", opcode, this.regs.PC - 1);
                 yield return null;
 
                 IEnumerable<object> instructionCycles = GetMicrocode(opcode);
