@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29424.173
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.CPU", "NES.CPU\NES.CPU.csproj", "{0C7EC6E2-F030-465A-B73E-1BD5EE476676}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NES.CPU", "NES.CPU\NES.CPU.csproj", "{0C7EC6E2-F030-465A-B73E-1BD5EE476676}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.CPU.Tests", "NES.CPU.Tests\NES.CPU.Tests.csproj", "{A0D3079E-951E-4AC3-B2E3-916D03F2A02A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NES.CPU.Tests", "NES.CPU.Tests\NES.CPU.Tests.csproj", "{A0D3079E-951E-4AC3-B2E3-916D03F2A02A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES", "NES\NES.csproj", "{D102DD1B-203F-4AC8-B496-1B417B976379}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{A0D3079E-951E-4AC3-B2E3-916D03F2A02A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0D3079E-951E-4AC3-B2E3-916D03F2A02A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0D3079E-951E-4AC3-B2E3-916D03F2A02A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D102DD1B-203F-4AC8-B496-1B417B976379}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D102DD1B-203F-4AC8-B496-1B417B976379}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D102DD1B-203F-4AC8-B496-1B417B976379}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D102DD1B-203F-4AC8-B496-1B417B976379}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

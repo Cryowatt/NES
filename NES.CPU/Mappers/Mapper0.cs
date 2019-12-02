@@ -22,11 +22,24 @@ namespace NES.CPU.Mappers
             {
                 return ram.Span[address - 0x06000];
             }
-            else
+            else if (0x8000 <= address && address < 0xC000)
             {
                 //CPU $8000-$BFFF: First 16 KB of ROM.
+                return image.ProgramRomData.Span[address - 0x8000];
+            }
+            else if (0xC000 <= address && image.ProgramRomData.Length == 0x4000)
+            {
+                //CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
+                return image.ProgramRomData.Span[address - 0xC000];
+            }
+            else if (0xC000 <= address && image.ProgramRomData.Length == 0x8000)
+            {
                 //CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
                 return image.ProgramRomData.Span[address - 0x8000];
+            }
+            else
+            {
+                throw new InvalidOperationException();
             }
         }
 

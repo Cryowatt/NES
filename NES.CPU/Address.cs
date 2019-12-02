@@ -13,9 +13,8 @@ namespace NES.CPU
         [FieldOffset(1)]
         public byte High;
 
-        public Address(ushort address)
+        public Address(ushort address) : this()
         {
-            this.Low = this.High = 0;
             this.Ptr = address;
         }
 
@@ -59,7 +58,7 @@ namespace NES.CPU
 
         public override string ToString()
         {
-            return string.Format("${0:X4}", this.Ptr);
+            return string.Format("{0:X4}", this.Ptr);
         }
 
         public int CompareTo(Address other)
