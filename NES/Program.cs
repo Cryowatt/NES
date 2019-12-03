@@ -15,17 +15,23 @@ namespace NES
                 var romFile = RomImage.From(reader);
                 var bus = new NesBus(new Mapper0(romFile));
                 var cpu = new Ricoh2A(bus);
+                cpu.InstructionTrace += OnInstructionTrace;
                 var process = cpu.Process();
                 foreach (var cycle in process.SkipWhile((o, i) =>
                 {
                     cpu.JMP(0xC000);
-                    return i < 24;
+                    return i < 1;
                 }
                     ).Take(26554))
                 {
-                    Console.WriteLine(cycle);
+                    //Console.WriteLine(cycle);
                 }
             }
+        }
+
+        private static void OnInstructionTrace(InstructionTrace trace)
+        {
+            Console.WriteLine(trace);
         }
     }
 }

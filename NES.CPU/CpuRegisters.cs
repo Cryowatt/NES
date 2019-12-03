@@ -26,7 +26,7 @@ namespace NES.CPU
             this.P = flags;
         }
 
-        public override string ToString() => $"PC[{PC}] S[{S}] A[{A}] X[{X}] Y[{Y}] P[{P}]";
+        public override string ToString() => $"PC[{PC}] S[{S:X2}] A[{A:X2}] X[{X:X2}] Y[{Y:X2}] P[{(byte)P:X2} {P}]";
 
         public byte Carry
         {

@@ -53,34 +53,35 @@ namespace NES.CPU
         public bool BPL() => !this.regs.Negative;
         public IEnumerable<object> BRK()
         {
-            SetTraceOpDetails("BRK");
             // 2    PC     R  read next instruction byte (and throw it away),
             //                increment PC
             this.Read(this.regs.PC++);
-            yield return trace;
+            yield return cycleTrace;
 
             // 3  $0100,S  W  push PCH on stack (with B flag set), decrement S
             this.Write(this.Stack, this.regs.PC.High);
             this.regs.S--;
-            yield return trace;
+            yield return cycleTrace;
 
             // 4  $0100,S  W  push PCL on stack, decrement S
             this.Write(this.Stack, this.regs.PC.Low);
             this.regs.S--;
-            yield return trace;
+            yield return cycleTrace;
 
             // 5  $0100,S  W  push P on stack, decrement S
             this.Write(this.Stack, (byte)this.regs.P);
             this.regs.S--;
-            yield return trace;
+            yield return cycleTrace;
 
             // 6   $FFFE   R  fetch PCL
             this.regs.PC.Low = this.Read(0xfffe);
-            yield return trace;
+            yield return cycleTrace;
 
             // 7   $FFFF   R  fetch PCH
             this.regs.PC.High = this.Read(0xffff);
-            yield return trace;
+            yield return cycleTrace;
+
+            TraceInstruction("BRK");
         }
         public bool BVC() => !this.regs.Overflow;
         public bool BVS() => this.regs.Overflow;
@@ -105,7 +106,11 @@ namespace NES.CPU
         }
         public void DEX() => this.regs.X = DEC(this.regs.X);
         public void DEY() => this.regs.Y = DEC(this.regs.Y);
-        public void EOR() => throw new NotImplementedException();
+        public void EOR(byte operand)
+        {
+            this.regs.A ^= operand;
+            SetResultFlags(this.regs.A);
+        }
         public byte INC(byte operand)
         {
             var result = (byte)(operand + 1);
@@ -117,31 +122,30 @@ namespace NES.CPU
         public void JMP(Address address) { this.regs.PC = address; }
         public IEnumerable<object> JSR()
         {
-            SetTraceOpcodeMethod("JSR");
             // 2    PC     R  fetch low address byte, increment PC
             Address address = this.Read(this.regs.PC++);
-            yield return trace;
+            yield return cycleTrace;
 
             // 3  $0100,S  R  internal operation (predecrement S?)
             this.Read(this.Stack);
-            yield return trace;
+            yield return cycleTrace;
 
             // 4  $0100,S  W  push PCH on stack, decrement S
             this.Write(this.Stack, this.regs.PC.High);
             this.regs.S--;
-            yield return trace;
+            yield return cycleTrace;
 
             // 5  $0100,S  W  push PCL on stack, decrement S
             this.Write(this.Stack, this.regs.PC.Low);
             this.regs.S--;
-            yield return trace;
+            yield return cycleTrace;
 
             // 6    PC     R  copy low address byte to PCL, fetch high address
             //                byte to PCH
             address.High = this.Read(this.regs.PC);
-            Debug.WriteLine("0x{0:X4} JSR #{1}", this.regs.PC - 1, address);
             this.regs.PC = address;
-            yield return trace;
+            yield return cycleTrace;
+            TraceInstruction("JSR", address);
         }
         public void LDA(byte operand) => MOV(operand, ref this.regs.A);
         public void LDX(byte operand) => MOV(operand, ref this.regs.X);
@@ -184,57 +188,57 @@ namespace NES.CPU
 
         public IEnumerable<object> RTI()
         {
-            SetTraceOpcodeMethod("RTI");
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
-            yield return trace;
+            yield return cycleTrace;
 
             // 3  $0100,S  R  increment S
             this.Read(this.Stack);
             this.regs.S++;
-            yield return trace;
+            yield return cycleTrace;
 
             // 4  $0100,S  R  pull P from stack, increment S
             this.regs.P = (StatusFlags)this.Read(this.Stack);
             this.regs.S++;
-            yield return trace;
+            yield return cycleTrace;
 
             // 5  $0100,S  R  pull PCL from stack, increment S
             this.regs.PC.Low = this.Read(this.Stack);
             this.regs.S++;
-            yield return trace;
+            yield return cycleTrace;
 
             // 6  $0100,S  R  pull PCH from stack
             this.regs.PC.High = this.Read(this.Stack);
-            yield return trace;
+            yield return cycleTrace;
+            TraceInstruction("RTI");
         }
         public IEnumerable<object> RTS()
         {
-            SetTraceOpcodeMethod("RTS");
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
-            yield return trace;
+            yield return cycleTrace;
 
             // 3  $0100,S  R  increment S
             this.Read(this.Stack);
             checked
             {
                 this.regs.S++;
-                yield return trace;
+                yield return cycleTrace;
 
                 // 4  $0100,S  R  pull PCL from stack, increment S
                 this.regs.PC.Low = this.Read(this.Stack);
                 this.regs.S++;
-                yield return trace;
+                yield return cycleTrace;
             }
 
             // 5  $0100,S  R  pull PCH from stack
             this.regs.PC.High = this.Read(this.Stack);
-            yield return trace;
+            yield return cycleTrace;
 
             // 6    PC     R  increment PC
             this.Read(this.regs.PC++);
-            yield return trace;
+            yield return cycleTrace;
+            TraceInstruction("RTS");
         }
         public void SBC(byte operand) => ADC((byte)~operand);
         //{
@@ -246,8 +250,8 @@ namespace NES.CPU
         //    this.regs.Carry = (byte)(result < 0 ? 1 : 0);
         //    this.regs.Zero = this.regs.A == 0;
         //}
-        public void SEC() => throw new NotImplementedException();
-        public void SED() => throw new NotImplementedException();
+        public void SEC() => this.regs.P |= StatusFlags.Carry;
+        public void SED() => this.regs.P |= StatusFlags.Decimal;
         public void SEI() { this.regs.InterruptDisable = true; }
         public byte STA() { return this.regs.A; }
         public byte STX() { return this.regs.X; }
@@ -266,32 +270,32 @@ namespace NES.CPU
         }
         private IEnumerable<object> PushValue(byte value, [CallerMemberName] string caller = null)
         {
-            SetTraceOpcodeMethod(caller);
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
-            yield return trace;
+            yield return cycleTrace;
 
             // 3  $0100,S  W  push register on stack, decrement S
             this.Write(this.Stack, value);
             this.regs.S--;
-            yield return trace;
+            yield return cycleTrace;
+            TraceInstruction(caller);
         }
 
         private IEnumerable<object> PullValue(Action<byte> setter, [CallerMemberName] string caller = null)
         {
-            SetTraceOpcodeMethod(caller);
             // 2    PC     R  read next instruction byte (and throw it away)
             this.Read(this.regs.PC);
-            yield return trace;
+            yield return cycleTrace;
 
             // 3  $0100,S  R  increment S
             this.Read(this.Stack);
             this.regs.S++;
-            yield return trace;
+            yield return cycleTrace;
 
             // 4  $0100,S  R  pull register from stack
             setter(this.Read(this.Stack));
-            yield return trace;
+            yield return cycleTrace;
+            TraceInstruction(caller);
         }
 
         private void SetResultFlags(byte result)
