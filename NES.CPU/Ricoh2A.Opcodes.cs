@@ -157,6 +157,7 @@ namespace NES.CPU
             return (byte)result;
         }
         public void NOP() { }
+        public void NOP(byte operand) { }
         public void ORA(byte operand)
         {
             this.regs.A &= operand;

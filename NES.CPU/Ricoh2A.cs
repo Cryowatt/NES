@@ -18,15 +18,17 @@ namespace NES.CPU
             : this(bus, new CpuRegisters(StatusFlags.Default | StatusFlags.InterruptDisable))
         { }
 
-        public Ricoh2A(IBus bus, CpuRegisters registers)
+        public Ricoh2A(IBus bus, CpuRegisters registers, Address? initAddress = null)
         {
             this.bus = bus;
             this.regs = registers;
+            this.initAddress = initAddress ?? new Address(0xFFFC);
         }
 
-        public CpuRegisters Registers => this.regs;
+        public CpuRegisters Registers => (CpuRegisters)this.regs.Clone();
 
         private CpuRegisters regs;
+        private Address initAddress;
 
         private Address Stack => (Address)0x0100 + this.regs.S;
 
@@ -34,12 +36,6 @@ namespace NES.CPU
         {
             throw new InvalidOperationException();
         }
-
-        // This will be deleted later
-        private IEnumerable<object> StubAddressing(Action microcode) => throw new NotImplementedException(microcode.Method.Name);
-        private IEnumerable<object> StubAddressing(Action<byte> microcode) => throw new NotImplementedException(microcode.Method.Name);
-        private IEnumerable<object> StubAddressing(Func<byte> microcode) => throw new NotImplementedException(microcode.Method.Name);
-        private IEnumerable<object> StubAddressing(Func<byte, byte> microcode) => throw new NotImplementedException(microcode.Method.Name);
 
         private IEnumerable<object> AbsoluteAddressing(Action<byte> microcode)
         {
@@ -129,10 +125,14 @@ namespace NES.CPU
             yield return cycleTrace;
 
             //      5  pointer+1* R  fetch PCH, copy latch to PCL
-            address.High = Read(pointer + 1);
+            pointer.Low++;
+            address.High = Read(pointer);
             microcode(address);
             yield return cycleTrace;
             TraceInstruction(microcode.Method.Name, pointer);
+
+            //Note: * The PCH will always be fetched from the same page
+            //        than PCL, i.e. page boundary crossing is not handled.
         }
 
         private IEnumerable<object> AbsoluteIndexedAddressing(Action<byte> microcode, byte index)
@@ -186,6 +186,46 @@ namespace NES.CPU
             Write(address, microcode());
             yield return cycleTrace;
             TraceInstruction(microcode.Method.Name, address);
+        }
+
+        private IEnumerable<object> AbsoluteIndexedAddressing(Func<byte, byte> microcode, byte index)
+        {
+
+            // 2     PC      R  fetch low byte of address, increment PC
+            Address address = Read(this.regs.PC++);
+            yield return cycleTrace;
+
+            // 3     PC      R  fetch high byte of address,
+            //                  add index register to low address byte,
+            //                  increment PC
+            address.High = Read(this.regs.PC++);
+            var offset = address.Low + index;
+            address.Low = (byte)offset;
+            yield return cycleTrace;
+
+            // 4  address+X* R  read from effective address,
+            //                  fix the high byte of effective address
+            var operand = Read(address);
+            address.Ptr += (ushort)(offset & 0xff00);
+            yield return cycleTrace;
+
+            // 5  address+X  R  re-read from effective address
+            operand = Read(address);
+            yield return cycleTrace;
+
+            // 6  address+X  W  write the value back to effective address,
+            //                  and do the operation on it
+            Write(address, operand);
+            var result = microcode(operand);
+            yield return cycleTrace;
+
+            // 7  address+X  W  write the new value to effective address
+            Write(address, microcode(operand));
+            yield return cycleTrace;
+            TraceInstruction(microcode.Method.Name, address);
+
+            //Notes: * The high byte of the effective address may be invalid
+            //         at this time, i.e. it may be smaller by $100.
         }
 
         private IEnumerable<object> AccumulatorAddressing(Func<byte, byte> microcode)
@@ -336,16 +376,16 @@ namespace NES.CPU
             //2     PC      R  fetch operand, increment PC
             var operand = Read(this.regs.PC++);
             var jumpAddress = this.regs.PC + (sbyte)operand;
-            //yield return trace;
+            //yield return cycleTrace;
 
             if (microcode())
             {
                 //3     PC      R  Fetch opcode of next instruction,
                 //                 If branch is taken, add operand to PCL.
                 //                 Otherwise increment PC.
-                //Read(this.regs.PC);
+                Read(this.regs.PC);
                 this.regs.PC.Low = jumpAddress.Low;
-                //yield return trace;
+                yield return cycleTrace;
 
                 if (this.regs.PC.High != jumpAddress.High)
                 {
@@ -481,9 +521,9 @@ namespace NES.CPU
         public IEnumerable<Trace> Process()
         {
             StartTrace();
-            this.regs.PC.Low = Read(0xFFFC);
+            this.regs.PC.Low = Read(initAddress);
             yield return cycleTrace;
-            this.regs.PC.High = Read(0xFFFD);
+            this.regs.PC.High = Read(initAddress + 1);
             yield return cycleTrace;
 
             while (true)
@@ -493,7 +533,6 @@ namespace NES.CPU
                 currentOpcode = Read(this.regs.PC++);
                 IEnumerable<object> instructionCycles = GetMicrocode(currentOpcode);
                 yield return cycleTrace;
-
 
                 foreach (var cycle in instructionCycles)
                 {

@@ -15,7 +15,7 @@ namespace NES.CPU
                 0x20 => JSR(),
                 0x40 => RTI(),
                 0x60 => RTS(),
-                //0x80 => StubAddressing(NOP),
+                0x80 => ImmediateAddressing(NOP),
                 0xa0 => ImmediateAddressing(LDY),
                 0xc0 => ImmediateAddressing(CPY),
                 0xe0 => ImmediateAddressing(CPX),
@@ -33,14 +33,14 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+02   t       t       t       t      NOP*t   LDX     NOP*t   NOP*t     ? /immed
-                0x02 => StubAddressing(STP),
-                0x22 => StubAddressing(STP),
-                0x42 => StubAddressing(STP),
-                0x62 => StubAddressing(STP),
-                0x82 => StubAddressing(NOP),
+                //0x02 => StubAddressing(STP),
+                //0x22 => StubAddressing(STP),
+                //0x42 => StubAddressing(STP),
+                //0x62 => StubAddressing(STP),
+                //0x82 => StubAddressing(NOP),
                 0xa2 => ImmediateAddressing(LDX),
-                0xc2 => StubAddressing(NOP),
-                0xe2 => StubAddressing(NOP),
+                //0xc2 => StubAddressing(NOP),
+                //0xe2 => StubAddressing(NOP),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+03  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    (indir,x)
@@ -55,10 +55,10 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+04  NOP*    BIT     NOP*    NOP*    STY     LDY     CPY     CPX     Zeropage
-                //0x04 => StubAddressing(NOP),
+                0x04 => ZeroPageAddressing(NOP),
                 0x24 => ZeroPageAddressing(BIT),
-                //0x44 => StubAddressing(NOP),
-                //0x64 => StubAddressing(NOP),
+                0x44 => ZeroPageAddressing(NOP),
+                0x64 => ZeroPageAddressing(NOP),
                 0x84 => ZeroPageAddressing(STY),
                 0xa4 => ZeroPageAddressing(LDY),
                 0xc4 => ZeroPageAddressing(CPY),
@@ -143,7 +143,7 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+0c  NOP*    BIT     JMP     JMP ()  STY     LDY     CPY     CPX     Absolute
-                //0x0c => StubAddressing(NOP),
+                0x0c => AbsoluteAddressing(NOP),
                 0x2c => AbsoluteAddressing(BIT),
                 0x4c => AbsoluteAddressing((Action<Address>)JMP),
                 0x6c => AbsoluteIndirectAddressing(JMP),
@@ -231,25 +231,25 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+14  NOP*    NOP*    NOP*    NOP*    STY     LDY     NOP*    NOP*    Zeropage,x
-                //0x14 => StubAddressing(NOP),
-                //0x34 => StubAddressing(NOP),
-                //0x54 => StubAddressing(NOP),
-                //0x74 => StubAddressing(NOP),
+                0x14 => ZeroPageIndexedAddressing(NOP, this.regs.X),
+                0x34 => ZeroPageIndexedAddressing(NOP, this.regs.X),
+                0x54 => ZeroPageIndexedAddressing(NOP, this.regs.X),
+                0x74 => ZeroPageIndexedAddressing(NOP, this.regs.X),
                 0x94 => ZeroPageIndexedAddressing(STY, this.regs.X),
                 0xb4 => ZeroPageIndexedAddressing(LDY, this.regs.X),
-                //0xd4 => StubAddressing(NOP),
-                //0xf4 => StubAddressing(NOP),
+                0xd4 => ZeroPageIndexedAddressing(NOP, this.regs.X),
+                0xf4 => ZeroPageIndexedAddressing(NOP, this.regs.X),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+15  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Zeropage,x
-                0x15 => StubAddressing(ORA),
-                0x35 => StubAddressing(AND),
+                0x15 => ZeroPageIndexedAddressing(ORA, this.regs.X),
+                0x35 => ZeroPageIndexedAddressing(AND, this.regs.X),
                 0x55 => ZeroPageIndexedAddressing(EOR, this.regs.X),
                 0x75 => ZeroPageIndexedAddressing(ADC, this.regs.X),
                 0x95 => ZeroPageIndexedAddressing(STA, this.regs.X),
-                0xb5 => StubAddressing(LDA),
-                0xd5 => StubAddressing(CMP),
-                0xf5 => StubAddressing(SBC),
+                0xb5 => ZeroPageIndexedAddressing(LDA, this.regs.X),
+                0xd5 => ZeroPageIndexedAddressing(CMP, this.regs.X),
+                0xf5 => ZeroPageIndexedAddressing(SBC, this.regs.X),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+16  ASL     ROL     LSR     ROR     STX  y) LDX  y) DEC     INC     Zeropage,x
@@ -286,25 +286,25 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+19  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,y
-                0x19 => StubAddressing(ORA),
-                0x39 => StubAddressing(AND),
+                0x19 => AbsoluteIndexedAddressing(ORA, this.regs.Y),
+                0x39 => AbsoluteIndexedAddressing(AND, this.regs.Y),
                 0x59 => AbsoluteIndexedAddressing(EOR, this.regs.Y),
                 0x79 => AbsoluteIndexedAddressing(ADC, this.regs.Y),
                 0x99 => AbsoluteIndexedAddressing(STA, this.regs.Y),
-                0xb9 => StubAddressing(LDA),
-                0xd9 => StubAddressing(CMP),
-                0xf9 => StubAddressing(SBC),
+                0xb9 => AbsoluteIndexedAddressing(LDA, this.regs.Y),
+                0xd9 => AbsoluteIndexedAddressing(CMP, this.regs.Y),
+                0xf9 => AbsoluteIndexedAddressing(SBC, this.regs.Y),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1a  NOP*    NOP*    NOP*    NOP*    TXS     TSX     NOP*    NOP*    Implied
-                //0x1a => StubAddressing(NOP),
-                //0x3a => StubAddressing(NOP),
-                //0x5a => StubAddressing(NOP),
-                //0x7a => StubAddressing(NOP),
+                0x1a => ImpliedAddressing(NOP),
+                0x3a => ImpliedAddressing(NOP),
+                0x5a => ImpliedAddressing(NOP),
+                0x7a => ImpliedAddressing(NOP),
                 0x9a => ImpliedAddressing(TXS),
                 0xba => ImpliedAddressing(TSX),
-                //0xda => StubAddressing(NOP),
-                //0xfa => StubAddressing(NOP),
+                0xda => ImpliedAddressing(NOP),
+                0xfa => ImpliedAddressing(NOP),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1b  SLO*    RLA*    SRE*    RRA*    SHS**   LAS**   DCP*    ISB*    Absolute,y
@@ -319,14 +319,14 @@ namespace NES.CPU
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1c  NOP*    NOP*    NOP*    NOP*    SHY**   LDY     NOP*    NOP*    Absolute,x
-                //0x1c => StubAddressing(NOP),
-                //0x3c => StubAddressing(NOP),
-                //0x5c => StubAddressing(NOP),
-                //0x7c => StubAddressing(NOP),
+                0x1c => AbsoluteIndexedAddressing(NOP, this.regs.X),
+                0x3c => AbsoluteIndexedAddressing(NOP, this.regs.X),
+                0x5c => AbsoluteIndexedAddressing(NOP, this.regs.X),
+                0x7c => AbsoluteIndexedAddressing(NOP, this.regs.X),
                 //0x9c => StubAddressing(SHY),
-                0xbc => StubAddressing(LDY),
-                //0xdc => StubAddressing(NOP),
-                //0xfc => StubAddressing(NOP),
+                0xbc => AbsoluteIndexedAddressing(LDY, this.regs.X),
+                0xdc => AbsoluteIndexedAddressing(NOP, this.regs.X),
+                0xfc => AbsoluteIndexedAddressing(NOP, this.regs.X),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,x
@@ -337,18 +337,18 @@ namespace NES.CPU
                 0x9d => AbsoluteIndexedAddressing(STA, this.regs.X),
                 0xbd => AbsoluteIndexedAddressing(LDA, this.regs.X),
                 0xdd => AbsoluteIndexedAddressing(CMP, this.regs.X),
-                0xfd => StubAddressing(SBC),
+                0xfd => AbsoluteIndexedAddressing(SBC, this.regs.X),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1e  ASL     ROL     LSR     ROR     SHX**y) LDX  y) DEC     INC     Absolute,x
-                0x1e => StubAddressing(ASL),
-                0x3e => StubAddressing(ROL),
-                0x5e => StubAddressing(LSR),
-                0x7e => StubAddressing(ROR),
+                0x1e => AbsoluteIndexedAddressing(ASL, this.regs.X),
+                0x3e => AbsoluteIndexedAddressing(ROL, this.regs.X),
+                0x5e => AbsoluteIndexedAddressing(LSR, this.regs.X),
+                0x7e => AbsoluteIndexedAddressing(ROR, this.regs.X),
                 //0x9e => StubAddressing(SHX),
-                0xbe => StubAddressing(LDX),
-                0xde => StubAddressing(DEC),
-                0xfe => StubAddressing(INC),
+                0xbe => AbsoluteIndexedAddressing(LDX, this.regs.X),
+                0xde => AbsoluteIndexedAddressing(DEC, this.regs.X),
+                0xfe => AbsoluteIndexedAddressing(INC, this.regs.X),
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1f  SLO*    RLA*    SRE*    RRA*    SHA**y) LAX* y) DCP*    ISB*    Absolute,x

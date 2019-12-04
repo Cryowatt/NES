@@ -17,14 +17,19 @@ namespace NES
                 var cpu = new Ricoh2A(bus);
                 cpu.InstructionTrace += OnInstructionTrace;
                 var process = cpu.Process();
+                int cycleCount = 4;
                 foreach (var cycle in process.SkipWhile((o, i) =>
                 {
+                    cycleCount++;
                     cpu.JMP(0xC000);
                     return i < 1;
                 }
                     ).Take(26554))
                 {
-                    //Console.WriteLine(cycle);
+                    cycleCount++;
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine("{0} {1}", cycle, cycleCount);
+                    Console.ResetColor();
                 }
             }
         }
@@ -32,6 +37,7 @@ namespace NES
         private static void OnInstructionTrace(InstructionTrace trace)
         {
             Console.WriteLine(trace);
+            Console.ReadLine();
         }
     }
 }

@@ -1,9 +1,10 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace NES.CPU
 {
     [StructLayout(LayoutKind.Explicit)]
-    public struct CpuRegisters
+    public struct CpuRegisters : ICloneable
     {
         [FieldOffset(0)]
         public Address PC;
@@ -26,7 +27,7 @@ namespace NES.CPU
             this.P = flags;
         }
 
-        public override string ToString() => $"PC[{PC}] S[{S:X2}] A[{A:X2}] X[{X:X2}] Y[{Y:X2}] P[{(byte)P:X2} {P}]";
+        public override string ToString() => $"A[{A:X2}] X[{X:X2}] Y[{Y:X2}] PC[{PC}] S[{S:X2}] P[{(byte)P:X2} {Convert.ToString((byte)P, 2)} {P}]";
 
         public byte Carry
         {
@@ -76,6 +77,11 @@ namespace NES.CPU
             {
                 this.P &= ~flag;
             }
+        }
+
+        public object Clone()
+        {
+            return this.MemberwiseClone();
         }
 
         public static readonly CpuRegisters Empty = new CpuRegisters(StatusFlags.Default);
