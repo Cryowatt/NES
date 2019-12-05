@@ -682,6 +682,13 @@ namespace NES.CPU
             return result;
         }
 
+        private Trace Read(Address address, out byte value)
+        {
+            value = this.bus.Read(address);
+            SetTraceBusAction(address, value, isWrite: false);
+            return cycleTrace;
+        }
+
         private void Write(Address address, byte value)
         {
             SetTraceBusAction(address, value, isWrite: true);

@@ -14,7 +14,7 @@ namespace NES.CPU.Tests
         long cpuTicks = 0;
         int A = 0;
 
-        [Fact]
+        [Fact(Skip = "Nope")]
         public void Test1()
         {
             int a = 0;
@@ -24,13 +24,13 @@ namespace NES.CPU.Tests
             }
         }
 
-        [Fact]
+        [Fact(Skip = "Nope")]
         public void Test2()
         {
             foreach (var o in ProcessStuffIGuess().Take(1790000)) ;
         }
 
-        [Fact]
+        [Fact(Skip = "Nope")]
         public void Test3()
         {
             int masterClock = 236_250_000 / 11;

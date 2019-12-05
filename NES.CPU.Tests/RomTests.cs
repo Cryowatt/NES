@@ -109,17 +109,6 @@ namespace NES.CPU.Tests
             }
         }
 
-        [Fact]
-        public void AccumulatorTest()
-        {
-            int instructionCount = 0;
-            foreach (var instruction in NesTestInstructions())
-            {
-                instructionCount++;
-                instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "failed at instruction {0}", instructionCount);
-            }
-        }
-
         //[Fact]
         //public void NesTest()
         //{

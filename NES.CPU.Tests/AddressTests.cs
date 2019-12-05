@@ -48,7 +48,7 @@ namespace NES.CPU.Tests
         [Fact]
         public void ToStringFormatting()
         {
-            Assert.Equal("0xFFFF", ((Address)0xffff).ToString());
+            Assert.Equal("FFFF", ((Address)0xffff).ToString());
         }
     }
 }

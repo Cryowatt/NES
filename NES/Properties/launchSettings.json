@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NES": {
+      "commandName": "Project",
+      "commandLineArgs": "10000"
+    }
+  }
+}
