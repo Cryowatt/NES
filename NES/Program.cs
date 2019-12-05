@@ -13,7 +13,7 @@ namespace NES
 
         static void Main(string[] args)
         {
-            if(args.Length > 0)
+            if (args.Length > 0)
             {
                 skip = int.Parse(args[0]);
             }
@@ -26,21 +26,28 @@ namespace NES
                 var cpu = new Ricoh2A(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
                 cpu.InstructionTrace += OnInstructionTrace;
                 var process = cpu.Process();
-                foreach (var cycle in process.Take(26554))
+                foreach (var cycle in process.Take(26559))
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpu.CycleCount, cycle);
-                    Console.ResetColor();
+                    if (instructionCount + 20 > skip)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpu.CycleCount, cycle);
+                        Console.ResetColor();
+                    }
                 }
             }
         }
 
         private static void OnInstructionTrace(InstructionTrace trace)
         {
-            Console.WriteLine("[{0}] {1}", instructionCount++, trace);
+            if (instructionCount + 20 > skip)
+            {
+                Console.WriteLine("[{0}] {1}", instructionCount, trace);
+            }
+            instructionCount++;
             if (instructionCount > skip)
             {
-                Console.ReadLine();
+                //Console.ReadLine();
             }
         }
     }

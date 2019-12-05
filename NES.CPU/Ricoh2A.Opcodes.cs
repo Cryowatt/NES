@@ -180,15 +180,16 @@ namespace NES.CPU
         public byte ROL(byte operand)
         {
             int result = (operand << 1) | this.regs.Carry;
-            if (result > 0xff)
-            {
-                this.regs.Carry = 1;
-            }
-
+            this.regs.Carry = (byte)((result > 0xff) ? 1 : 0);
             SetResultFlags((byte)result);
             return (byte)result;
         }
-
+        public byte RLA(byte operand)
+        {
+            var result = ROL(operand);
+            AND(result);
+            return result;
+        }
         public byte ROR(byte operand)
         {
             int result = operand | (this.regs.Carry << 8);
@@ -197,7 +198,12 @@ namespace NES.CPU
             SetResultFlags((byte)result);
             return (byte)result;
         }
-
+        public byte RRA(byte operand)
+        {
+            var result = ROR(operand);
+            ADC(result);
+            return result;
+        }
         public IEnumerable<object> RTI()
         {
             // 2    PC     R  read next instruction byte (and throw it away)
@@ -266,6 +272,18 @@ namespace NES.CPU
         public void SEC() => this.regs.P |= StatusFlags.Carry;
         public void SED() => this.regs.P |= StatusFlags.Decimal;
         public void SEI() { this.regs.InterruptDisable = true; }
+        public byte SLO(byte operand)
+        {
+            var result = ASL(operand);
+            ORA(result);
+            return result;
+        }
+        public byte SRE(byte operand)
+        {
+            var result = LSR(operand);
+            EOR(result);
+            return result;
+        }
         public byte STA() { return this.regs.A; }
         public byte STX() { return this.regs.X; }
         public byte STY() { return this.regs.Y; }
