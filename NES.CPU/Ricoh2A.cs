@@ -20,6 +20,7 @@ namespace NES.CPU
 
         public Ricoh2A(IBus bus, CpuRegisters registers, Address? initAddress = null)
         {
+            this.CycleCount = 5;
             this.bus = bus;
             this.regs = registers;
             this.initAddress = initAddress ?? new Address(0xFFFC);
@@ -31,6 +32,8 @@ namespace NES.CPU
         private Address initAddress;
 
         private Address Stack => (Address)0x0100 + this.regs.S;
+
+        public long CycleCount { get; private set; }
 
         public void STP()
         {
@@ -151,9 +154,12 @@ namespace NES.CPU
 
             // 4  address+I* R  read from effective address,
             //                  fix the high byte of effective address
-            Read(address);
-            address.Ptr += (ushort)(offset & 0xff00);
-            yield return cycleTrace;
+            if (offset > byte.MaxValue)
+            {
+                Read(address);
+                address.Ptr += (ushort)(offset & 0xff00);
+                yield return cycleTrace;
+            }
 
             // 5+ address+I  R  re-read from effective address
             var operand = Read(address);
@@ -215,12 +221,12 @@ namespace NES.CPU
 
             // 6  address+X  W  write the value back to effective address,
             //                  and do the operation on it
-            Write(address, operand);
             var result = microcode(operand);
+            Write(address, operand);
             yield return cycleTrace;
 
             // 7  address+X  W  write the new value to effective address
-            Write(address, microcode(operand));
+            Write(address, result);
             yield return cycleTrace;
             TraceInstruction(microcode.Method.Name, address);
 
@@ -233,6 +239,7 @@ namespace NES.CPU
             //PC:R  read next instruction byte(and throw it away)
             Read(this.regs.PC);
             this.regs.A = microcode(this.regs.A);
+            SetResultFlags(this.regs.A);
             yield return cycleTrace;
             TraceInstruction(microcode.Method.Name);
         }
@@ -263,7 +270,7 @@ namespace NES.CPU
 
             // 3    pointer    R  read from the address, add X to it
             Read(pointer);
-            pointer += this.regs.X;
+            pointer.Low += this.regs.X;
             yield return cycleTrace;
 
             // 4   pointer+X   R  fetch effective address low
@@ -271,7 +278,8 @@ namespace NES.CPU
             yield return cycleTrace;
 
             // 5  pointer+X+1  R  fetch effective address high
-            address.High = Read(pointer + 1);
+            pointer.Low++;
+            address.High = Read(pointer);
             yield return cycleTrace;
 
             // 6    address    R  read from effective address
@@ -279,6 +287,9 @@ namespace NES.CPU
             microcode(operand);
             yield return cycleTrace;
             TraceInstruction(microcode.Method.Name, pointer);
+
+            //Note: The effective address is always fetched from zero page,
+            //      i.e. the zero page boundary crossing is not handled.
         }
 
         public IEnumerable<object> IndexedIndirectAddressing(Func<byte> microcode)
@@ -287,9 +298,10 @@ namespace NES.CPU
             // 2      PC       R  fetch pointer address, increment PC
             Address pointer = Read(this.regs.PC++);
             yield return cycleTrace;
+
             // 3    pointer    R  read from the address, add X to it
             Read(pointer);
-            pointer += this.regs.X;
+            pointer.Low += this.regs.X;
             yield return cycleTrace;
 
             // 4   pointer+X   R  fetch effective address low
@@ -297,12 +309,52 @@ namespace NES.CPU
             yield return cycleTrace;
 
             // 5  pointer+X+1  R  fetch effective address high
-            address.High = Read(pointer + 1);
+            pointer.Low++;
+            address.High = Read(pointer);
             yield return cycleTrace;
 
             // 6    address    W  write to effective address
             Write(address, microcode());
             yield return cycleTrace;
+            TraceInstruction(microcode.Method.Name, pointer);
+        }
+
+        public IEnumerable<object> IndexedIndirectAddressing(Func<byte, byte> microcode)
+        {
+            // 2      PC       R  fetch pointer address, increment PC
+            Address pointer = Read(this.regs.PC++);
+            yield return cycleTrace;
+
+            // 3    pointer    R  read from the address, add X to it
+            Read(pointer);
+            pointer.Low += this.regs.X;
+            yield return cycleTrace;
+
+            // 4   pointer+X   R  fetch effective address low
+            Address address = Read(pointer);
+            yield return cycleTrace;
+
+            // 5  pointer+X+1  R  fetch effective address high
+            pointer.Low++;
+            address.High = Read(pointer);
+            yield return cycleTrace;
+
+            // 6    address    R  read from effective address
+            var operand = Read(address);
+            yield return cycleTrace;
+
+            // 7    address    W  write the value back to effective address,
+            //                    and do the operation on it
+            var result = microcode(operand);
+            Write(address, operand);
+            yield return cycleTrace;
+
+            // 8    address    W  write the new value to effective address
+            Write(address, result);
+            yield return cycleTrace;
+
+            //Note: The effective address is always fetched from zero page,
+            //      i.e. the zero page boundary crossing is not handled.
             TraceInstruction(microcode.Method.Name, pointer);
         }
 
@@ -313,21 +365,25 @@ namespace NES.CPU
             yield return cycleTrace;
 
             // 3    pointer    R  fetch effective address low
+            Address address = Read(pointer);
             yield return cycleTrace;
 
             // 4   pointer+1   R  fetch effective address high,
             //                    add Y to low byte of effective address
-            Address address = Read(pointer);
-            address.High = Read(pointer + 1);
+            pointer.Low++;
+            address.High = Read(pointer);
             var low = address.Low + this.regs.Y;
-            address.Low += (byte)low;
+            address.Low = (byte)low;
             yield return cycleTrace;
 
             // 5   address+Y*  R  read from effective address,
             //                    fix high byte of effective address
-            Read(address);
-            address.Ptr += (ushort)(low & 0xff00);
-            yield return cycleTrace;
+            if (low > byte.MaxValue)
+            {
+                Read(address);
+                address.Ptr += (ushort)(low & 0xff00);
+                yield return cycleTrace;
+            }
 
             // 6+  address+Y   R  read from effective address
             var operand = Read(address);
@@ -369,6 +425,56 @@ namespace NES.CPU
             //       * The high byte of the effective address may be invalid
             //         at this time, i.e. it may be smaller by $100.
             TraceInstruction(microcode.Method.Name, pointer);
+        }
+
+
+        public IEnumerable<object> IndirectIndexedAddressing(Func<byte, byte> microcode)
+        {
+            // 2      PC       R  fetch pointer address, increment PC
+            Address pointer = Read(this.regs.PC++);
+            yield return cycleTrace;
+
+            // 3    pointer    R  fetch effective address low
+            Address address = Read(pointer);
+            yield return cycleTrace;
+
+            // 4   pointer+1   R  fetch effective address high,
+            //                    add Y to low byte of effective address
+            pointer.Low++;
+            address.High = Read(pointer);
+            var low = address.Low + this.regs.Y;
+            address.Low = (byte)low;
+            yield return cycleTrace;
+
+            // 5   address+Y*  R  read from effective address,
+            //                    fix high byte of effective address
+            if (low > byte.MaxValue)
+            {
+                Read(address);
+                address.Ptr += (ushort)(low & 0xff00);
+                yield return cycleTrace;
+            }
+
+            // 6   address+Y   R  read from effective address
+            var operand = Read(address);
+            yield return cycleTrace;
+
+            // 7   address+Y   W  write the value back to effective address,
+            //                    and do the operation on it
+            var result = microcode(operand);
+            Write(address, operand);
+            yield return cycleTrace;
+
+            // 8   address+Y   W  write the new value to effective address
+            Write(address, result);
+            yield return cycleTrace;
+            TraceInstruction(microcode.Method.Name, pointer);
+
+            //Notes: The effective address is always fetched from zero page,
+            //       i.e. the zero page boundary crossing is not handled.
+
+            //       * The high byte of the effective address may be invalid
+            //         at this time, i.e. it may be smaller by $100.
         }
 
         private IEnumerable<object> RelativeAddressing(Func<bool> microcode)
@@ -522,8 +628,10 @@ namespace NES.CPU
         {
             StartTrace();
             this.regs.PC.Low = Read(initAddress);
+            CycleCount++;
             yield return cycleTrace;
             this.regs.PC.High = Read(initAddress + 1);
+            CycleCount++;
             yield return cycleTrace;
 
             while (true)
@@ -532,10 +640,12 @@ namespace NES.CPU
                 currentOpcodeAddress = this.regs.PC;
                 currentOpcode = Read(this.regs.PC++);
                 IEnumerable<object> instructionCycles = GetMicrocode(currentOpcode);
+                CycleCount++;
                 yield return cycleTrace;
 
                 foreach (var cycle in instructionCycles)
                 {
+                    CycleCount++;
                     yield return cycle as Trace;
                 }
             }

@@ -11,18 +11,17 @@ namespace NES.CPU
         [FieldOffset(2)]
         public byte S;
         [FieldOffset(3)]
-        public byte A;
+        private byte a;
         [FieldOffset(4)]
-        public byte X;
+        private byte x;
         [FieldOffset(5)]
-        public byte Y;
+        private byte y;
         [FieldOffset(6)]
-        public StatusFlags P;
+        private StatusFlags p;
 
-        public CpuRegisters(StatusFlags flags)
+        public CpuRegisters(StatusFlags flags) : this()
         {
             this.S = 0xfd;
-            this.A = this.X = this.Y = 0;
             this.PC = 0x0000;
             this.P = flags;
         }
@@ -63,6 +62,68 @@ namespace NES.CPU
         {
             get => GetFlag(StatusFlags.Negative);
             set => SetFlag(StatusFlags.Negative, value);
+        }
+
+        private void SetResultFlags(byte result)
+        {
+            this.P = (this.P & ~(StatusFlags.Negative | StatusFlags.Zero)) |
+                (((StatusFlags)result) & StatusFlags.Negative) |
+                (result == 0 ? StatusFlags.Zero : (StatusFlags)0);
+        }
+
+        public byte A
+        {
+            get
+            {
+                return this.a;
+            }
+
+            set
+            {
+                this.a = value;
+                SetResultFlags(value);
+            }
+        }
+
+        public byte X
+        {
+            get
+            {
+                return this.x;
+            }
+
+            set
+            {
+                this.x = value;
+                SetResultFlags(value);
+            }
+        }
+
+        public byte Y
+        {
+            get
+            {
+                return this.y;
+            }
+
+            set
+            {
+                this.y = value;
+                SetResultFlags(value);
+            }
+        }
+
+        public StatusFlags P
+        {
+            get
+            {
+                return this.p;
+            }
+
+            set
+            {
+                this.p = (value | StatusFlags.Undefined_6) & ~StatusFlags.Undefined_5;
+            }
         }
 
         private bool GetFlag(StatusFlags flag) => this.P.HasFlag(flag);

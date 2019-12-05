@@ -10,27 +10,21 @@ namespace NES.CPU
         public void ADC(byte operand)
         {
             var result = this.regs.A + operand + (byte)(this.regs.P & StatusFlags.Carry);
-            this.regs.P = (this.regs.P & ~(StatusFlags.Overflow | StatusFlags.Negative)) |
-                (((StatusFlags)result) & StatusFlags.Negative) |
+            this.regs.P = (this.regs.P & ~(StatusFlags.Overflow)) |
                 (StatusFlags)(((this.regs.A ^ result) & (operand ^ result) & (int)StatusFlags.Negative) >> 1);
             this.regs.A = (byte)result;
             this.regs.Carry = (byte)(result > byte.MaxValue ? 1 : 0);
-            this.regs.Zero = this.regs.A == 0;
         }
 
         public void AND(byte operand)
         {
             this.regs.A &= operand;
-            SetResultFlags(this.regs.A);
         }
 
         public byte ASL(byte operand)
         {
             var result = operand << 1;
-            if (result > 0xff)
-            {
-                this.regs.Carry = 1;
-            }
+            this.regs.Carry = (byte)((result > 0xff) ? 1 : 0);
             SetResultFlags((byte)result);
             return (byte)result;
         }
@@ -98,6 +92,12 @@ namespace NES.CPU
         }
         public void CPX(byte operand) => CMP(operand, this.regs.X);
         public void CPY(byte operand) => CMP(operand, this.regs.Y);
+        public byte DCP(byte operand)
+        {
+            operand--;
+            CMP(operand);
+            return operand;
+        }
         public byte DEC(byte value)
         {
             value--;
@@ -109,7 +109,6 @@ namespace NES.CPU
         public void EOR(byte operand)
         {
             this.regs.A ^= operand;
-            SetResultFlags(this.regs.A);
         }
         public byte INC(byte operand)
         {
@@ -117,8 +116,14 @@ namespace NES.CPU
             SetResultFlags(result);
             return result;
         }
-        public void INX() => MOV((byte)(this.regs.X + 1), ref this.regs.X);
-        public void INY() => MOV((byte)(this.regs.Y + 1), ref this.regs.Y);
+        public void INX() => this.regs.X++;
+        public void INY() => this.regs.Y++;
+        public byte ISC(byte operand)
+        {
+            operand++;
+            SBC(operand);
+            return operand;
+        }
         public void JMP(Address address) { this.regs.PC = address; }
         public IEnumerable<object> JSR()
         {
@@ -147,24 +152,29 @@ namespace NES.CPU
             yield return cycleTrace;
             TraceInstruction("JSR", address);
         }
-        public void LDA(byte operand) => MOV(operand, ref this.regs.A);
-        public void LDX(byte operand) => MOV(operand, ref this.regs.X);
-        public void LDY(byte operand) => MOV(operand, ref this.regs.Y);
+        public void LAX(byte operand)
+        {
+            this.regs.A = operand;
+            this.regs.X = operand;
+        }
+        public void LDA(byte operand) => this.regs.A = operand;
+        public void LDX(byte operand) => this.regs.X = operand;
+        public void LDY(byte operand) => this.regs.Y = operand;
         public byte LSR(byte operand)
         {
             this.regs.Carry = (byte)(operand & 0x01);
-            var result = operand >> 1;
-            return (byte)result;
+            var result = (byte)(operand >> 1);
+            SetResultFlags(result);
+            return result;
         }
         public void NOP() { }
         public void NOP(byte operand) { }
         public void ORA(byte operand)
         {
-            this.regs.A &= operand;
-            SetResultFlags(this.regs.A);
+            this.regs.A |= operand;
         }
         public IEnumerable<object> PHA() => PushValue(this.regs.A);
-        public IEnumerable<object> PHP() => PushValue((byte)this.regs.P);
+        public IEnumerable<object> PHP() => PushValue((byte)(this.regs.P | StatusFlags.Default));
         public IEnumerable<object> PLA() => PullValue(v => this.regs.A = v);
         public IEnumerable<object> PLP() => PullValue(v => this.regs.P = (StatusFlags)v);
         public byte ROL(byte operand)
@@ -175,6 +185,7 @@ namespace NES.CPU
                 this.regs.Carry = 1;
             }
 
+            SetResultFlags((byte)result);
             return (byte)result;
         }
 
@@ -183,7 +194,7 @@ namespace NES.CPU
             int result = operand | (this.regs.Carry << 8);
             this.regs.Carry = (byte)(operand & 0x1);
             result >>= 1;
-
+            SetResultFlags((byte)result);
             return (byte)result;
         }
 
@@ -241,6 +252,7 @@ namespace NES.CPU
             yield return cycleTrace;
             TraceInstruction("RTS");
         }
+        public byte SAX() => (byte)(this.regs.A & this.regs.X);
         public void SBC(byte operand) => ADC((byte)~operand);
         //{
         //    var result = this.regs.A - operand - (byte)(this.regs.P & StatusFlags.Carry);
@@ -257,18 +269,13 @@ namespace NES.CPU
         public byte STA() { return this.regs.A; }
         public byte STX() { return this.regs.X; }
         public byte STY() { return this.regs.Y; }
-        public void TAX() => MOV(this.regs.A, ref this.regs.X);
-        public void TAY() => MOV(this.regs.A, ref this.regs.Y);
-        public void TSX() => MOV(this.regs.S, ref this.regs.X);
-        public void TXA() => MOV(this.regs.X, ref this.regs.A);
-        public void TXS() => MOV(this.regs.X, ref this.regs.S);
-        public void TYA() => MOV(this.regs.Y, ref this.regs.A);
+        public void TAX() => this.regs.X = this.regs.A;
+        public void TAY() => this.regs.Y = this.regs.A;
+        public void TSX() => this.regs.X = this.regs.S;
+        public void TXA() => this.regs.A = this.regs.X;
+        public void TXS() => this.regs.S = this.regs.X;
+        public void TYA() => this.regs.A = this.regs.Y;
 
-        private void MOV(byte value, ref byte destination)
-        {
-            destination = value;
-            SetResultFlags(destination);
-        }
         private IEnumerable<object> PushValue(byte value, [CallerMemberName] string caller = null)
         {
             // 2    PC     R  read next instruction byte (and throw it away)
@@ -294,7 +301,8 @@ namespace NES.CPU
             yield return cycleTrace;
 
             // 4  $0100,S  R  pull register from stack
-            setter(this.Read(this.Stack));
+            var value = this.Read(this.Stack);
+            setter(value);
             yield return cycleTrace;
             TraceInstruction(caller);
         }
