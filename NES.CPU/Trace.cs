@@ -6,9 +6,9 @@
         private const string ReadSymbol = "=>";
         public CpuRegisters Registers => this.cpu.Registers;
 
-        private readonly Ricoh2A cpu;
+        private readonly IRicoh2A cpu;
 
-        public Trace(Ricoh2A cpu)
+        public Trace(IRicoh2A cpu)
         {
             this.cpu = cpu;
         }

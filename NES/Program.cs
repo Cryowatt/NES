@@ -9,8 +9,40 @@ namespace NES
 {
     class Program
     {
+        private const long masterClock = 236_250_000 / 11;
+        private const double cpuClock = masterClock / 12.0;
         private static int instructionCount = 1;
         private static int skip = 0;
+
+        public class TestMapper : IMapper
+        {
+            public AddressRange AddressRange { get; } = new AddressRange(0x6000, 0xffff);
+
+            public byte Read(Address address)
+            {
+                if (address == 0x6ffc)
+                {
+                    return 0x4c;
+                }
+                else if (address == 0x6ffd)
+                {
+                    return 0x00;
+                }
+                else if (address == 0x6ffe)
+                {
+                    return 0x60;
+                }
+                else
+                {
+                    return 0x80;
+                }
+            }
+
+            public void Write(Address address, byte value)
+            {
+                throw new NotImplementedException();
+            }
+        }
 
         static void Main(string[] args)
         {
@@ -18,27 +50,87 @@ namespace NES
             {
                 skip = int.Parse(args[0]);
             }
-
-            using (var reader = new BinaryReader(File.OpenRead(@"C:\Users\ecarter\source\repos\Cryowatt\NES\NES.CPU.Tests\TestRoms\nestest.nes")))
+            RomImage romFile;
+            var stream = File.OpenRead(@"C:\Users\ecarter\source\repos\Cryowatt\NES\NES.CPU.Tests\TestRoms\nestest.nes");
+            var runCycles = 26559;
+            using (var reader = new BinaryReader(stream))
             {
-                var romFile = RomImage.From(reader);
-                var bus = new NesBus(new Mapper0(romFile));
-                bus.Write(0x6001, 0xc0);
-                var cpu = new Ricoh2A(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
-                cpu.InstructionTrace += OnInstructionTrace;
-                var process = cpu.Process();
-                var timer = Stopwatch.StartNew();
-                foreach (var cycle in process.Take(26559))
-                {
-                    if (instructionCount + 20 > skip)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpu.CycleCount, cycle);
-                        Console.ResetColor();
-                    }
-                }
-                Console.WriteLine(timer.Elapsed);
+                romFile = RomImage.From(reader);
             }
+            var mapper = new Mapper0(romFile);
+
+            // ========= NOP shit ============
+            //var mapper = new TestMapper();
+            //var runCycles = (int)cpuClock;
+
+            Funccpu(mapper, runCycles);
+            Statecpu(mapper, runCycles);
+            TotalFuncTime = TimeSpan.Zero;
+            TotalStateTime = TimeSpan.Zero;
+
+            for (int i = 0; i < 20; i++)
+            {
+                Console.WriteLine("State Machine CPU");
+                Statecpu(mapper, runCycles);
+                Console.WriteLine("Functional CPU");
+                Funccpu(mapper, runCycles);
+            }
+
+            Console.WriteLine("Total Func: " + TotalFuncTime);
+            Console.WriteLine("Total Stat: " + TotalStateTime);
+        }
+
+        private static TimeSpan TotalFuncTime = TimeSpan.Zero;
+        private static TimeSpan TotalStateTime = TimeSpan.Zero;
+
+        private static void Statecpu(IMapper mapper, int runCycles)
+        {
+            instructionCount = 1;
+
+            var bus = new NesBus(mapper);
+            bus.Write(0x6001, 0xc0);
+            var cpu = new Ricoh2A(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
+            cpu.InstructionTrace += OnInstructionTrace;
+            var process = cpu.Process();
+            var timer = Stopwatch.StartNew();
+            foreach (var cycle in process.Take(runCycles))
+            {
+                if (instructionCount + 20 > skip)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpu.CycleCount, cycle);
+                    Console.ResetColor();
+                }
+            }
+            timer.Stop();
+            TotalStateTime += timer.Elapsed;
+            Console.WriteLine($"{runCycles} in {timer.Elapsed} actual. Relative speed: {runCycles / (timer.Elapsed.TotalSeconds * cpuClock):P}");
+        }
+
+        private static void Funccpu(IMapper mapper, int runCycles)
+        {
+            instructionCount = 1;
+
+            var bus = new NesBus(mapper);
+            bus.Write(0x6001, 0xc0);
+            var cpu = new Ricoh2AFunctional(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
+            cpu.InstructionTrace += OnInstructionTrace;
+            //var process = cpu.Process();
+            var timer = Stopwatch.StartNew();
+            cpu.Reset();
+            while(cpu.CycleCount < runCycles)
+            {
+                var cycle = cpu.DoCycle();
+                if (instructionCount + 20 > skip)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpu.CycleCount, cycle);
+                    Console.ResetColor();
+                }
+            }
+            timer.Stop();
+            TotalFuncTime += timer.Elapsed;
+            Console.WriteLine($"{runCycles} in {timer.Elapsed} actual. Relative speed: {runCycles / (timer.Elapsed.TotalSeconds * cpuClock):P}");
         }
 
         private static void OnInstructionTrace(InstructionTrace trace)

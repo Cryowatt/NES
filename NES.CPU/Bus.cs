@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace NES.CPU
@@ -18,15 +19,35 @@ namespace NES.CPU
 
         private byte lastWrite;
 
+        public Address Address { get; set; }
+
+        public byte Value
+        {
+            get => Read(Address);
+            set => Write(Address, value);
+        }
+
+        public IBusDevice FindDevice(Address ptr)
+        {
+            for (int i = 0; i < this.devices.Length; i++)
+            {
+                if (this.devices[i].AddressRange.Contains(ptr))
+                {
+                    return this.devices[i];
+                }
+            }
+
+            return null;
+        }
+
         public byte Read(Address ptr)
         {
-            var result = this.devices.FirstOrDefault(o => o.AddressRange.Contains(ptr))?.Read(ptr) ?? this.lastWrite;
-            return result;
+            return FindDevice(ptr)?.Read(ptr) ?? this.lastWrite;
         }
 
         public void Write(Address ptr, byte value)
         {
-            this.devices.FirstOrDefault(o => o.AddressRange.Contains(ptr))?.Write(ptr, value);
+            FindDevice(ptr)?.Write(ptr, value);
             this.lastWrite = value;
         }
     }
