@@ -21,6 +21,10 @@
         {
             this.Operand = $"#${operand:X2}";
         }
+        public InstructionTrace(Address pc, byte opcode, string name, Address address, byte operand) : this(pc, opcode, name)
+        {
+            this.Operand = $"#{address} = #${operand:X2}";
+        }
 
         public override string ToString()
         {

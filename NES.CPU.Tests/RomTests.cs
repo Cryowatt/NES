@@ -157,13 +157,13 @@ namespace NES.CPU.Tests
             foreach (var instruction in NesTestInstructionsForFuncCpu())
             {
                 instructionCount++;
-                instruction.Actual.CycleCount.Should().Be(instruction.Expected.CycleCount, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.X.Should().Be(instruction.Expected.Registers.X, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.Y.Should().Be(instruction.Expected.Registers.Y, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.PC.Should().Be(instruction.Expected.Registers.PC, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.S.Should().Be(instruction.Expected.Registers.S, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.P.Should().Be(instruction.Expected.Registers.P, "failed at instruction {0}", instructionCount);
+                instruction.Actual.CycleCount.Should().Be(instruction.Expected.CycleCount, "cycle failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "A failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.X.Should().Be(instruction.Expected.Registers.X, "X failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.Y.Should().Be(instruction.Expected.Registers.Y, "Y failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.PC.Should().Be(instruction.Expected.Registers.PC, "PC failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.S.Should().Be(instruction.Expected.Registers.S, "S failed at instruction {0}", instructionCount);
+                ((byte)instruction.Actual.Registers.P).Should().Be((byte)instruction.Expected.Registers.P, "P failed at instruction {0}", instructionCount);
             }
         }
 
@@ -174,13 +174,13 @@ namespace NES.CPU.Tests
             foreach (var instruction in NesTestInstructions())
             {
                 instructionCount++;
-                instruction.Actual.CycleCount.Should().Be(instruction.Expected.CycleCount, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.X.Should().Be(instruction.Expected.Registers.X, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.Y.Should().Be(instruction.Expected.Registers.Y, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.PC.Should().Be(instruction.Expected.Registers.PC, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.S.Should().Be(instruction.Expected.Registers.S, "failed at instruction {0}", instructionCount);
-                instruction.Actual.Registers.P.Should().Be(instruction.Expected.Registers.P, "failed at instruction {0}", instructionCount);
+                instruction.Actual.CycleCount.Should().Be(instruction.Expected.CycleCount, "cycle failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "A failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.X.Should().Be(instruction.Expected.Registers.X, "X failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.Y.Should().Be(instruction.Expected.Registers.Y, "Y failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.PC.Should().Be(instruction.Expected.Registers.PC, "PC failed at instruction {0}", instructionCount);
+                instruction.Actual.Registers.S.Should().Be(instruction.Expected.Registers.S, "S failed at instruction {0}", instructionCount);
+                ((byte)instruction.Actual.Registers.P).Should().Be((byte)instruction.Expected.Registers.P, "P failed at instruction {0}", instructionCount);
             }
         }
 

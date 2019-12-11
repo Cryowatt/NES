@@ -50,19 +50,15 @@ namespace NES
             {
                 skip = int.Parse(args[0]);
             }
-            RomImage romFile;
-            var stream = File.OpenRead(@"C:\Users\ecarter\source\repos\Cryowatt\NES\NES.CPU.Tests\TestRoms\nestest.nes");
             var runCycles = 26559;
-            using (var reader = new BinaryReader(stream))
-            {
-                romFile = RomImage.From(reader);
-            }
+            RomImage romFile = LoadRom();
             var mapper = new Mapper0(romFile);
 
             // ========= NOP shit ============
             //var mapper = new TestMapper();
             //var runCycles = (int)cpuClock;
 
+            BothCpu(romFile, runCycles);
             Funccpu(mapper, runCycles);
             Statecpu(mapper, runCycles);
             TotalFuncTime = TimeSpan.Zero;
@@ -78,6 +74,19 @@ namespace NES
 
             Console.WriteLine("Total Func: " + TotalFuncTime);
             Console.WriteLine("Total Stat: " + TotalStateTime);
+        }
+
+        private static RomImage LoadRom()
+        {
+            RomImage romFile;
+            Console.WriteLine(Environment.CurrentDirectory);
+            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\nestest.nes");
+            using (var reader = new BinaryReader(stream))
+            {
+                romFile = RomImage.From(reader);
+            }
+
+            return romFile;
         }
 
         private static TimeSpan TotalFuncTime = TimeSpan.Zero;
@@ -107,6 +116,37 @@ namespace NES
             Console.WriteLine($"{runCycles} in {timer.Elapsed} actual. Relative speed: {runCycles / (timer.Elapsed.TotalSeconds * cpuClock):P}");
         }
 
+        private static void BothCpu(RomImage rom, int runCycles)
+        {
+            instructionCount = 1;
+            var funcBus = new NesBus(new Mapper0(rom));
+            var stateBus = new NesBus(new Mapper0(rom));
+            funcBus.Write(0x6001, 0xc0);
+            stateBus.Write(0x6001, 0xc0);
+            var cpus = new Ricoh2A(stateBus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
+            var cpuf = new Ricoh2AFunctional(funcBus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
+            cpus.InstructionTrace += OnInstructionTrace;
+            cpuf.InstructionTrace += OnInstructionTracez;
+            var process = cpus.Process();
+            cpuf.Reset();
+            var timer = Stopwatch.StartNew();
+            foreach (var cycle in process.Take(runCycles))
+            {
+                var fcycle = cpuf.DoCycle();
+                if (instructionCount + 20 > skip)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpus.CycleCount, cycle);
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpuf.CycleCount, fcycle);
+                    Console.ResetColor();
+                }
+            }
+            timer.Stop();
+            TotalStateTime += timer.Elapsed;
+            Console.WriteLine($"{runCycles} in {timer.Elapsed} actual. Relative speed: {runCycles / (timer.Elapsed.TotalSeconds * cpuClock):P}");
+        }
+
         private static void Funccpu(IMapper mapper, int runCycles)
         {
             instructionCount = 1;
@@ -118,7 +158,7 @@ namespace NES
             //var process = cpu.Process();
             var timer = Stopwatch.StartNew();
             cpu.Reset();
-            while(cpu.CycleCount < runCycles)
+            while (cpu.CycleCount < runCycles)
             {
                 var cycle = cpu.DoCycle();
                 if (instructionCount + 20 > skip)
@@ -135,6 +175,7 @@ namespace NES
 
         private static void OnInstructionTrace(InstructionTrace trace)
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             if (instructionCount + 20 > skip)
             {
                 Console.WriteLine("[{0}] {1}", instructionCount, trace);
@@ -142,8 +183,19 @@ namespace NES
             instructionCount++;
             if (instructionCount > skip)
             {
-                //Console.ReadLine();
+                Console.ReadLine();
             }
+            Console.ResetColor();
+        }
+
+        private static void OnInstructionTracez(InstructionTrace trace)
+        {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            if (instructionCount + 20 > skip)
+            {
+                Console.WriteLine("[{0}] {1}", instructionCount, trace);
+            }
+            Console.ResetColor();
         }
     }
 }
