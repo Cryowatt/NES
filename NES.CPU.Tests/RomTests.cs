@@ -23,6 +23,7 @@ namespace NES.CPU.Tests
 
             public CpuRegisters Registers { get; set; }
             public long CycleCount { get; set; }
+            public string OpCode { get; internal set; }
         }
 
         public static IEnumerable<(ExecutionState Expected, ExecutionState Actual)> NesTestInstructions()
@@ -108,14 +109,17 @@ namespace NES.CPU.Tests
                 // Bootstrap
                 cpu.DoCycle();
                 cpu.DoCycle();
-                state.Enqueue(new ExecutionState(cpu));
+                state.Enqueue(new ExecutionState(cpu) { OpCode = "JMP" });
                 ExecutionState expected = new ExecutionState();
                 var trunumerator = truthSource.GetEnumerator();
 
                 void InstructionTrace(InstructionTrace trace)
                 {
                     instructionTriggered = true;
-                    state.Enqueue(new ExecutionState(cpu));
+                    state.Enqueue(new ExecutionState(cpu)
+                    {
+                        OpCode = trace.Name
+                    });
                 }
                 cpu.InstructionTrace += InstructionTrace;
 
@@ -124,6 +128,7 @@ namespace NES.CPU.Tests
                     var parsedLog = neslogParser.Match(trunumerator.Current);
                     try
                     {
+                        expected.OpCode = parsedLog.Groups["Op"].Value;
                         expected.CycleCount = long.Parse(parsedLog.Groups["CYC"].Value);
                     }
                     catch (Exception e)
@@ -157,6 +162,7 @@ namespace NES.CPU.Tests
             foreach (var instruction in NesTestInstructionsForFuncCpu())
             {
                 instructionCount++;
+                //instruction.Actual.OpCode.Should().Be(instruction.Expected.OpCode, "OpCode failed at instruction {0}", instructionCount);
                 instruction.Actual.CycleCount.Should().Be(instruction.Expected.CycleCount, "cycle failed at instruction {0}", instructionCount);
                 instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "A failed at instruction {0}", instructionCount);
                 instruction.Actual.Registers.X.Should().Be(instruction.Expected.Registers.X, "X failed at instruction {0}", instructionCount);
@@ -174,6 +180,7 @@ namespace NES.CPU.Tests
             foreach (var instruction in NesTestInstructions())
             {
                 instructionCount++;
+                //instruction.Actual.OpCode.Should().Be(instruction.Expected.OpCode, "OpCode failed at instruction {0}", instructionCount);
                 instruction.Actual.CycleCount.Should().Be(instruction.Expected.CycleCount, "cycle failed at instruction {0}", instructionCount);
                 instruction.Actual.Registers.A.Should().Be(instruction.Expected.Registers.A, "A failed at instruction {0}", instructionCount);
                 instruction.Actual.Registers.X.Should().Be(instruction.Expected.Registers.X, "X failed at instruction {0}", instructionCount);

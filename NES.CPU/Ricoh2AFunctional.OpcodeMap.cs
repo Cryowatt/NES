@@ -43,16 +43,16 @@ namespace NES.CPU
                 //+02   t       t       t       t      NOP*t   LDX     NOP*t   NOP*t     ? /immed
                 case 0xa2: ImmediateAddressing(cpu, LDX); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+03  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    (indir,x)
-                //0x03 => IndexedIndirectAddressing(SLO),
-                //0x23 => IndexedIndirectAddressing(RLA),
-                //0x43 => IndexedIndirectAddressing(SRE),
-                //0x63 => IndexedIndirectAddressing(RRA),
-                //0x83 => IndexedIndirectAddressing(SAX),
-                //0xa3 => IndexedIndirectAddressing(LAX),
-                //0xc3 => IndexedIndirectAddressing(DCP),
-                //0xe3 => IndexedIndirectAddressing(ISC),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+03  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    (indir,x)
+                case 0x03: IndexedIndirectAddressing(cpu, SLO); break;
+                case 0x23: IndexedIndirectAddressing(cpu, RLA); break;
+                case 0x43: IndexedIndirectAddressing(cpu, SRE); break;
+                case 0x63: IndexedIndirectAddressing(cpu, RRA); break;
+                case 0x83: IndexedIndirectAddressing(cpu, SAX); break;
+                case 0xa3: IndexedIndirectAddressing(cpu, LAX); break;
+                case 0xc3: IndexedIndirectAddressing(cpu, DCP); break;
+                case 0xe3: IndexedIndirectAddressing(cpu, ISC); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+04  NOP*    BIT     NOP*    NOP*    STY     LDY     CPY     CPX     Zeropage
@@ -87,16 +87,16 @@ namespace NES.CPU
                 case 0xc6: ZeroPageAddressing(cpu, Operation(DEC)); break;
                 case 0xe6: ZeroPageAddressing(cpu, Operation(INC)); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+07  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    Zeropage
-                //0x07 => ZeroPageAddressing(SLO),
-                //0x27 => ZeroPageAddressing(RLA),
-                //0x47 => ZeroPageAddressing(SRE),
-                //0x67 => ZeroPageAddressing(RRA),
-                //0x87 => ZeroPageAddressing(SAX),
-                //0xa7 => ZeroPageAddressing(LAX),
-                //0xc7 => ZeroPageAddressing(DCP),
-                //0xe7 => ZeroPageAddressing(ISC),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+07  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    Zeropage
+                case 0x07: ZeroPageAddressing(cpu, SLO); break;
+                case 0x27: ZeroPageAddressing(cpu, RLA); break;
+                case 0x47: ZeroPageAddressing(cpu, SRE); break;
+                case 0x67: ZeroPageAddressing(cpu, RRA); break;
+                case 0x87: ZeroPageAddressing(cpu, SAX); break;
+                case 0xa7: ZeroPageAddressing(cpu, LAX); break;
+                case 0xc7: ZeroPageAddressing(cpu, DCP); break;
+                case 0xe7: ZeroPageAddressing(cpu, ISC); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+08  PHP     PLP     PHA     PLA     DEY     TAY     INY     INX     Implied
@@ -130,16 +130,9 @@ namespace NES.CPU
                 case 0xca: ImpliedAddressing(cpu, DEX); break;
                 case 0xea: ImpliedAddressing(cpu, NOP); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+0b  ANC**   ANC**   ASR**   ARR**   ANE**   LXA**   SBX**   SBC*    Immediate
-                ////0x0b => StubAddressing(ANC),
-                ////0x2b => StubAddressing(ANC),
-                ////0x4b => StubAddressing(ALR),
-                ////0x6b => StubAddressing(ARR),
-                ////0x8b => StubAddressing(XAA),
-                ////0xab => StubAddressing(LAX),
-                ////0xcb => StubAddressing(AXS),
-                //0xeb => ImmediateAddressing(SBC),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+0b  ANC**   ANC**   ASR**   ARR**   ANE**   LXA**   SBX**   SBC*    Immediate
+                case 0xeb: ImmediateAddressing(cpu, SBC); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+0c  NOP*    BIT     JMP     JMP ()  STY     LDY     CPY     CPX     Absolute
@@ -174,16 +167,16 @@ namespace NES.CPU
                 case 0xce: AbsoluteAddressing(cpu, Operation(DEC)); break;
                 case 0xee: AbsoluteAddressing(cpu, Operation(INC)); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+0f  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    Absolute
-                //0x0f => AbsoluteAddressing(SLO),
-                //0x2f => AbsoluteAddressing(RLA),
-                //0x4f => AbsoluteAddressing(SRE),
-                //0x6f => AbsoluteAddressing(RRA),
-                //0x8f => AbsoluteAddressing(SAX),
-                //0xaf => AbsoluteAddressing(LAX),
-                //0xcf => AbsoluteAddressing(DCP),
-                //0xef => AbsoluteAddressing(ISC),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+0f  SLO*    RLA*    SRE*    RRA*    SAX*    LAX*    DCP*    ISB*    Absolute
+                case 0x0f: AbsoluteAddressing(cpu, SLO); break;
+                case 0x2f: AbsoluteAddressing(cpu, RLA); break;
+                case 0x4f: AbsoluteAddressing(cpu, SRE); break;
+                case 0x6f: AbsoluteAddressing(cpu, RRA); break;
+                case 0x8f: AbsoluteAddressing(cpu, SAX); break;
+                case 0xaf: AbsoluteAddressing(cpu, LAX); break;
+                case 0xcf: AbsoluteAddressing(cpu, DCP); break;
+                case 0xef: AbsoluteAddressing(cpu, ISC); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+10  BPL     BMI     BVC     BVS     BCC     BCS     BNE     BEQ     Relative
@@ -196,16 +189,16 @@ namespace NES.CPU
                 case 0xd0: RelativeAddressing(cpu, BNE); break;
                 case 0xf0: RelativeAddressing(cpu, BEQ); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+11  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     (indir),y
-                //0x11 => IndirectIndexedAddressing(ORA),
-                //0x31 => IndirectIndexedAddressing(AND),
-                //0x51 => IndirectIndexedAddressing(EOR),
-                //0x71 => IndirectIndexedAddressing(ADC),
-                //0x91 => IndirectIndexedAddressing(STA),
-                //0xb1 => IndirectIndexedAddressing(LDA),
-                //0xd1 => IndirectIndexedAddressing(CMP),
-                //0xf1 => IndirectIndexedAddressing(SBC),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+11  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     (indir),y
+                case 0x11: IndirectIndexedAddressing(cpu, ORA); break;
+                case 0x31: IndirectIndexedAddressing(cpu, AND); break;
+                case 0x51: IndirectIndexedAddressing(cpu, EOR); break;
+                case 0x71: IndirectIndexedAddressing(cpu, ADC); break;
+                case 0x91: IndirectIndexedAddressing(cpu, STA); break;
+                case 0xb1: IndirectIndexedAddressing(cpu, LDA); break;
+                case 0xd1: IndirectIndexedAddressing(cpu, CMP); break;
+                case 0xf1: IndirectIndexedAddressing(cpu, SBC); break;
 
                 ////set  00      20      40      60      80      a0      c0      e0      mode
                 ////+12   t       t       t       t       t       t       t       t         ?
@@ -218,27 +211,26 @@ namespace NES.CPU
                 ////0xd2 => StubAddressing(STP),
                 ////0xf2 => StubAddressing(STP),
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+13  SLO*    RLA*    SRE*    RRA*    SHA**   LAX*    DCP*    ISB*    (indir),y
-                //0x13 => IndirectIndexedAddressing(SLO),
-                //0x33 => IndirectIndexedAddressing(RLA),
-                //0x53 => IndirectIndexedAddressing(SRE),
-                //0x73 => IndirectIndexedAddressing(RRA),
-                ////0x93 => StubAddressing(AHX),
-                //0xb3 => IndirectIndexedAddressing(LAX),
-                //0xd3 => IndirectIndexedAddressing(DCP),
-                //0xf3 => IndirectIndexedAddressing(ISC),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+13  SLO*    RLA*    SRE*    RRA*    SHA**   LAX*    DCP*    ISB*    (indir),y
+                case 0x13: IndirectIndexedAddressing(cpu, SLO); break;
+                case 0x33: IndirectIndexedAddressing(cpu, RLA); break;
+                case 0x53: IndirectIndexedAddressing(cpu, SRE); break;
+                case 0x73: IndirectIndexedAddressing(cpu, RRA); break;
+                case 0xb3: IndirectIndexedAddressing(cpu, LAX); break;
+                case 0xd3: IndirectIndexedAddressing(cpu, DCP); break;
+                case 0xf3: IndirectIndexedAddressing(cpu, ISC); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+14  NOP*    NOP*    NOP*    NOP*    STY     LDY     NOP*    NOP*    Zeropage,x
-                //0x14 => ZeroPageIndexedAddressing(NOP, this.regs.X),
-                //0x34 => ZeroPageIndexedAddressing(NOP, this.regs.X),
-                //0x54 => ZeroPageIndexedAddressing(NOP, this.regs.X),
-                //0x74 => ZeroPageIndexedAddressing(NOP, this.regs.X),
-                //0x94 => ZeroPageIndexedAddressing(STY, this.regs.X),
-                //0xb4 => ZeroPageIndexedAddressing(LDY, this.regs.X),
-                //0xd4 => ZeroPageIndexedAddressing(NOP, this.regs.X),
-                //0xf4 => ZeroPageIndexedAddressing(NOP, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+14  NOP*    NOP*    NOP*    NOP*    STY     LDY     NOP*    NOP*    Zeropage,x
+                case 0x14: ZeroPageIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x34: ZeroPageIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x54: ZeroPageIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x74: ZeroPageIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x94: ZeroPageIndexedAddressing(cpu, STY, cpu.regs.X); break;
+                case 0xb4: ZeroPageIndexedAddressing(cpu, LDY, cpu.regs.X); break;
+                case 0xd4: ZeroPageIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0xf4: ZeroPageIndexedAddressing(cpu, NOP, cpu.regs.X); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+15  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Zeropage,x
@@ -251,27 +243,27 @@ namespace NES.CPU
                 case 0xd5: ZeroPageIndexedAddressing(cpu, Operation(CMP), cpu.regs.X); break;
                 case 0xf5: ZeroPageIndexedAddressing(cpu, Operation(SBC), cpu.regs.X); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+16  ASL     ROL     LSR     ROR     STX  y) LDX  y) DEC     INC     Zeropage,x
-                //0x16 => ZeroPageIndexedAddressing(ASL, this.regs.X),
-                //0x36 => ZeroPageIndexedAddressing(ROL, this.regs.X),
-                //0x56 => ZeroPageIndexedAddressing(LSR, this.regs.X),
-                //0x76 => ZeroPageIndexedAddressing(ROR, this.regs.X),
-                //0x96 => ZeroPageIndexedAddressing(STX, this.regs.Y),
-                //0xb6 => ZeroPageIndexedAddressing(LDX, this.regs.Y),
-                //0xd6 => ZeroPageIndexedAddressing(DEC, this.regs.X),
-                //0xf6 => ZeroPageIndexedAddressing(INC, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+16  ASL     ROL     LSR     ROR     STX  y) LDX  y) DEC     INC     Zeropage,x
+                case 0x16: ZeroPageIndexedAddressing(cpu, ASL, cpu.regs.X); break;
+                case 0x36: ZeroPageIndexedAddressing(cpu, ROL, cpu.regs.X); break;
+                case 0x56: ZeroPageIndexedAddressing(cpu, LSR, cpu.regs.X); break;
+                case 0x76: ZeroPageIndexedAddressing(cpu, ROR, cpu.regs.X); break;
+                case 0x96: ZeroPageIndexedAddressing(cpu, STX, cpu.regs.Y); break;
+                case 0xb6: ZeroPageIndexedAddressing(cpu, LDX, cpu.regs.Y); break;
+                case 0xd6: ZeroPageIndexedAddressing(cpu, DEC, cpu.regs.X); break;
+                case 0xf6: ZeroPageIndexedAddressing(cpu, INC, cpu.regs.X); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+17  SLO*    RLA*    SRE*    RRA*    SAX* y) LAX* y) DCP*    ISB*    Zeropage,x
-                //0x17 => ZeroPageIndexedAddressing(SLO, this.regs.X),
-                //0x37 => ZeroPageIndexedAddressing(RLA, this.regs.X),
-                //0x57 => ZeroPageIndexedAddressing(SRE, this.regs.X),
-                //0x77 => ZeroPageIndexedAddressing(RRA, this.regs.X),
-                //0x97 => ZeroPageIndexedAddressing(SAX, this.regs.Y),
-                //0xb7 => ZeroPageIndexedAddressing(LAX, this.regs.Y),
-                //0xd7 => ZeroPageIndexedAddressing(DCP, this.regs.X),
-                //0xf7 => ZeroPageIndexedAddressing(ISC, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+17  SLO*    RLA*    SRE*    RRA*    SAX* y) LAX* y) DCP*    ISB*    Zeropage,x
+                case 0x17: ZeroPageIndexedAddressing(cpu, SLO, cpu.regs.X); break;
+                case 0x37: ZeroPageIndexedAddressing(cpu, RLA, cpu.regs.X); break;
+                case 0x57: ZeroPageIndexedAddressing(cpu, SRE, cpu.regs.X); break;
+                case 0x77: ZeroPageIndexedAddressing(cpu, RRA, cpu.regs.X); break;
+                case 0x97: ZeroPageIndexedAddressing(cpu, SAX, cpu.regs.Y); break;
+                case 0xb7: ZeroPageIndexedAddressing(cpu, LAX, cpu.regs.Y); break;
+                case 0xd7: ZeroPageIndexedAddressing(cpu, DCP, cpu.regs.X); break;
+                case 0xf7: ZeroPageIndexedAddressing(cpu, ISC, cpu.regs.X); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+18  CLC     SEC     CLI     SEI     TYA     CLV     CLD     SED     Implied
@@ -284,16 +276,16 @@ namespace NES.CPU
                 case 0xd8: ImpliedAddressing(cpu, CLD); break;
                 case 0xf8: ImpliedAddressing(cpu, SED); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+19  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,y
-                //0x19 => AbsoluteIndexedAddressing(ORA, this.regs.Y),
-                //0x39 => AbsoluteIndexedAddressing(AND, this.regs.Y),
-                //0x59 => AbsoluteIndexedAddressing(EOR, this.regs.Y),
-                //0x79 => AbsoluteIndexedAddressing(ADC, this.regs.Y),
-                //0x99 => AbsoluteIndexedAddressing(STA, this.regs.Y),
-                //0xb9 => AbsoluteIndexedAddressing(LDA, this.regs.Y),
-                //0xd9 => AbsoluteIndexedAddressing(CMP, this.regs.Y),
-                //0xf9 => AbsoluteIndexedAddressing(SBC, this.regs.Y),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+19  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,y
+                case 0x19: AbsoluteIndexedAddressing(cpu, ORA, cpu.regs.Y); break;
+                case 0x39: AbsoluteIndexedAddressing(cpu, AND, cpu.regs.Y); break;
+                case 0x59: AbsoluteIndexedAddressing(cpu, EOR, cpu.regs.Y); break;
+                case 0x79: AbsoluteIndexedAddressing(cpu, ADC, cpu.regs.Y); break;
+                case 0x99: AbsoluteIndexedAddressing(cpu, STA, cpu.regs.Y); break;
+                case 0xb9: AbsoluteIndexedAddressing(cpu, LDA, cpu.regs.Y); break;
+                case 0xd9: AbsoluteIndexedAddressing(cpu, CMP, cpu.regs.Y); break;
+                case 0xf9: AbsoluteIndexedAddressing(cpu, SBC, cpu.regs.Y); break;
 
                 //set  00      20      40      60      80      a0      c0      e0      mode
                 //+1a  NOP*    NOP*    NOP*    NOP*    TXS     TSX     NOP*    NOP*    Implied
@@ -306,60 +298,55 @@ namespace NES.CPU
                 case 0xda: ImpliedAddressing(cpu, NOP); break;
                 case 0xfa: ImpliedAddressing(cpu, NOP); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+1b  SLO*    RLA*    SRE*    RRA*    SHS**   LAS**   DCP*    ISB*    Absolute,y
-                //0x1b => AbsoluteIndexedAddressing(SLO, this.regs.Y),
-                //0x3b => AbsoluteIndexedAddressing(RLA, this.regs.Y),
-                //0x5b => AbsoluteIndexedAddressing(SRE, this.regs.Y),
-                //0x7b => AbsoluteIndexedAddressing(RRA, this.regs.Y),
-                ////0x9b => StubAddressing(TAS),
-                ////0xbb => StubAddressing(LAS),
-                //0xdb => AbsoluteIndexedAddressing(DCP, this.regs.Y),
-                //0xfb => AbsoluteIndexedAddressing(ISC, this.regs.Y),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+1b  SLO*    RLA*    SRE*    RRA*    SHS**   LAS**   DCP*    ISB*    Absolute,y
+                case 0x1b: AbsoluteIndexedAddressing(cpu, SLO, cpu.regs.Y); break;
+                case 0x3b: AbsoluteIndexedAddressing(cpu, RLA, cpu.regs.Y); break;
+                case 0x5b: AbsoluteIndexedAddressing(cpu, SRE, cpu.regs.Y); break;
+                case 0x7b: AbsoluteIndexedAddressing(cpu, RRA, cpu.regs.Y); break;
+                case 0xdb: AbsoluteIndexedAddressing(cpu, DCP, cpu.regs.Y); break;
+                case 0xfb: AbsoluteIndexedAddressing(cpu, ISC, cpu.regs.Y); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+1c  NOP*    NOP*    NOP*    NOP*    SHY**   LDY     NOP*    NOP*    Absolute,x
-                //0x1c => AbsoluteIndexedAddressing(NOP, this.regs.X),
-                //0x3c => AbsoluteIndexedAddressing(NOP, this.regs.X),
-                //0x5c => AbsoluteIndexedAddressing(NOP, this.regs.X),
-                //0x7c => AbsoluteIndexedAddressing(NOP, this.regs.X),
-                ////0x9c => StubAddressing(SHY),
-                //0xbc => AbsoluteIndexedAddressing(LDY, this.regs.X),
-                //0xdc => AbsoluteIndexedAddressing(NOP, this.regs.X),
-                //0xfc => AbsoluteIndexedAddressing(NOP, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+1c  NOP*    NOP*    NOP*    NOP*    SHY**   LDY     NOP*    NOP*    Absolute,x
+                case 0x1c: AbsoluteIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x3c: AbsoluteIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x5c: AbsoluteIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0x7c: AbsoluteIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0xbc: AbsoluteIndexedAddressing(cpu, LDY, cpu.regs.X); break;
+                case 0xdc: AbsoluteIndexedAddressing(cpu, NOP, cpu.regs.X); break;
+                case 0xfc: AbsoluteIndexedAddressing(cpu, NOP, cpu.regs.X); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+1d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,x
-                //0x1d => AbsoluteIndexedAddressing(ORA, this.regs.X),
-                //0x3d => AbsoluteIndexedAddressing(AND, this.regs.X),
-                //0x5d => AbsoluteIndexedAddressing(EOR, this.regs.X),
-                //0x7d => AbsoluteIndexedAddressing(ADC, this.regs.X),
-                //0x9d => AbsoluteIndexedAddressing(STA, this.regs.X),
-                //0xbd => AbsoluteIndexedAddressing(LDA, this.regs.X),
-                //0xdd => AbsoluteIndexedAddressing(CMP, this.regs.X),
-                //0xfd => AbsoluteIndexedAddressing(SBC, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+1d  ORA     AND     EOR     ADC     STA     LDA     CMP     SBC     Absolute,x
+                case 0x1d: AbsoluteIndexedAddressing(cpu, ORA, cpu.regs.X); break;
+                case 0x3d: AbsoluteIndexedAddressing(cpu, AND, cpu.regs.X); break;
+                case 0x5d: AbsoluteIndexedAddressing(cpu, EOR, cpu.regs.X); break;
+                case 0x7d: AbsoluteIndexedAddressing(cpu, ADC, cpu.regs.X); break;
+                case 0x9d: AbsoluteIndexedAddressing(cpu, STA, cpu.regs.X); break;
+                case 0xbd: AbsoluteIndexedAddressing(cpu, LDA, cpu.regs.X); break;
+                case 0xdd: AbsoluteIndexedAddressing(cpu, CMP, cpu.regs.X); break;
+                case 0xfd: AbsoluteIndexedAddressing(cpu, SBC, cpu.regs.X); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+1e  ASL     ROL     LSR     ROR     SHX**y) LDX  y) DEC     INC     Absolute,x
-                //0x1e => AbsoluteIndexedAddressing(ASL, this.regs.X),
-                //0x3e => AbsoluteIndexedAddressing(ROL, this.regs.X),
-                //0x5e => AbsoluteIndexedAddressing(LSR, this.regs.X),
-                //0x7e => AbsoluteIndexedAddressing(ROR, this.regs.X),
-                ////0x9e => StubAddressing(SHX),
-                //0xbe => AbsoluteIndexedAddressing(LDX, this.regs.Y),
-                //0xde => AbsoluteIndexedAddressing(DEC, this.regs.X),
-                //0xfe => AbsoluteIndexedAddressing(INC, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+1e  ASL     ROL     LSR     ROR     SHX**y) LDX  y) DEC     INC     Absolute,x
+                case 0x1e: AbsoluteIndexedAddressing(cpu, ASL, cpu.regs.X); break;
+                case 0x3e: AbsoluteIndexedAddressing(cpu, ROL, cpu.regs.X); break;
+                case 0x5e: AbsoluteIndexedAddressing(cpu, LSR, cpu.regs.X); break;
+                case 0x7e: AbsoluteIndexedAddressing(cpu, ROR, cpu.regs.X); break;
+                case 0xbe: AbsoluteIndexedAddressing(cpu, LDX, cpu.regs.Y); break;
+                case 0xde: AbsoluteIndexedAddressing(cpu, DEC, cpu.regs.X); break;
+                case 0xfe: AbsoluteIndexedAddressing(cpu, INC, cpu.regs.X); break;
 
-                ////set  00      20      40      60      80      a0      c0      e0      mode
-                ////+1f  SLO*    RLA*    SRE*    RRA*    SHA**y) LAX* y) DCP*    ISB*    Absolute,x
-                //0x1f => AbsoluteIndexedAddressing(SLO, this.regs.X),
-                //0x3f => AbsoluteIndexedAddressing(RLA, this.regs.X),
-                //0x5f => AbsoluteIndexedAddressing(SRE, this.regs.X),
-                //0x7f => AbsoluteIndexedAddressing(RRA, this.regs.X),
-                ////0x9f => StubAddressing(AHX),
-                //0xbf => AbsoluteIndexedAddressing(LAX, this.regs.Y),
-                //0xdf => AbsoluteIndexedAddressing(DCP, this.regs.X),
-                //0xff => AbsoluteIndexedAddressing(ISC, this.regs.X),
+                //set  00      20      40      60      80      a0      c0      e0      mode
+                //+1f  SLO*    RLA*    SRE*    RRA*    SHA**y) LAX* y) DCP*    ISB*    Absolute,x
+                case 0x1f: AbsoluteIndexedAddressing(cpu, SLO, cpu.regs.X); break;
+                case 0x3f: AbsoluteIndexedAddressing(cpu, RLA, cpu.regs.X); break;
+                case 0x5f: AbsoluteIndexedAddressing(cpu, SRE, cpu.regs.X); break;
+                case 0x7f: AbsoluteIndexedAddressing(cpu, RRA, cpu.regs.X); break;
+                case 0xbf: AbsoluteIndexedAddressing(cpu, LAX, cpu.regs.Y); break;
+                case 0xdf: AbsoluteIndexedAddressing(cpu, DCP, cpu.regs.X); break;
+                case 0xff: AbsoluteIndexedAddressing(cpu, ISC, cpu.regs.X); break;
 
                 default: throw new NotImplementedException($"Missing Opcode: {cpu.currentOpcode:X2} @ {cpu.CycleCount}");
             };

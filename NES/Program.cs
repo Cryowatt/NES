@@ -135,9 +135,9 @@ namespace NES
                 var fcycle = cpuf.DoCycle();
                 if (instructionCount + 20 > skip)
                 {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
                     Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpus.CycleCount, cycle);
-                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpuf.CycleCount, fcycle);
                     Console.ResetColor();
                 }
@@ -175,7 +175,7 @@ namespace NES
 
         private static void OnInstructionTrace(InstructionTrace trace)
         {
-            Console.ForegroundColor = ConsoleColor.Green;
+            Console.ForegroundColor = ConsoleColor.Yellow;
             if (instructionCount + 20 > skip)
             {
                 Console.WriteLine("[{0}] {1}", instructionCount, trace);
@@ -190,7 +190,7 @@ namespace NES
 
         private static void OnInstructionTracez(InstructionTrace trace)
         {
-            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.ForegroundColor = ConsoleColor.Green;
             if (instructionCount + 20 > skip)
             {
                 Console.WriteLine("[{0}] {1}", instructionCount, trace);

@@ -139,10 +139,10 @@ namespace NES.CPU
                 c.TraceInstruction("JSR", c.address);
             });
         }
-        public void LAX(byte operand)
+        public static void LAX(Ricoh2AFunctional cpu, byte operand)
         {
-            this.regs.A = operand;
-            this.regs.X = operand;
+            cpu.regs.A = operand;
+            cpu.regs.X = operand;
         }
         public static void LDA(Ricoh2AFunctional cpu, byte operand) => cpu.regs.A = operand;
         public static void LDX(Ricoh2AFunctional cpu, byte operand) => cpu.regs.X = operand;
@@ -213,12 +213,11 @@ namespace NES.CPU
 
             return (byte)result;
         }
-        public byte RLA(byte operand)
+        public static byte RLA(Ricoh2AFunctional cpu, byte operand)
         {
-            throw new NotImplementedException();
-            //var result = ROL(operand);
-            //AND(result);
-            //return result;
+            var result = ROL(cpu, operand);
+            AND(cpu, result);
+            return result;
         }
         public static byte ROR(Ricoh2AFunctional cpu, byte operand)
         {
@@ -228,12 +227,11 @@ namespace NES.CPU
             cpu.SetResultFlags((byte)result);
             return (byte)result;
         }
-        public byte RRA(byte operand)
+        public static byte RRA(Ricoh2AFunctional cpu, byte operand)
         {
-            throw new NotImplementedException();
-            //var result = ROR(operand);
-            //ADC(result);
-            //return result;
+            var result = ROR(cpu, operand);
+            ADC(cpu, result);
+            return result;
         }
         public static void RTI(Ricoh2AFunctional cpu)
         {
@@ -310,24 +308,22 @@ namespace NES.CPU
                 c.TraceInstruction("RTS", c.regs.PC);
             });
         }
-        public byte SAX() => (byte)(this.regs.A & this.regs.X);
+        public static byte SAX(Ricoh2AFunctional cpu) => (byte)(cpu.regs.A & cpu.regs.X);
         public static void SBC(Ricoh2AFunctional cpu, byte operand) => ADC(cpu, (byte)~operand);
         public static void SEC(Ricoh2AFunctional cpu) => cpu.regs.P |= StatusFlags.Carry;
         public static void SED(Ricoh2AFunctional cpu) => cpu.regs.P |= StatusFlags.Decimal;
         public static void SEI(Ricoh2AFunctional cpu) { cpu.regs.InterruptDisable = true; }
-        public byte SLO(byte operand)
+        public static byte SLO(Ricoh2AFunctional cpu, byte operand)
         {
-            throw new NotFiniteNumberException();
-            //var result = ASL(operand);
-            //ORA(result);
-            //return result;
+            var result = ASL(cpu, operand);
+            ORA(cpu, result);
+            return result;
         }
-        public byte SRE(byte operand)
+        public static byte SRE(Ricoh2AFunctional cpu, byte operand)
         {
-            throw new NotFiniteNumberException();
-            //var result = LSR(operand);
-            //EOR(result);
-            //return result;
+            var result = LSR(cpu, operand);
+            EOR(cpu, result);
+            return result;
         }
         public static byte STA(Ricoh2AFunctional cpu) => cpu.regs.A;
         public static byte STX(Ricoh2AFunctional cpu) => cpu.regs.X;
