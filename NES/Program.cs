@@ -58,7 +58,7 @@ namespace NES
             //var mapper = new TestMapper();
             //var runCycles = (int)cpuClock;
 
-            BothCpu(romFile, runCycles);
+            //BothCpu(romFile, runCycles);
             Funccpu(mapper, runCycles);
             Statecpu(mapper, runCycles);
             TotalFuncTime = TimeSpan.Zero;

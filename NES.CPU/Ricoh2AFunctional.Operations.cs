@@ -128,16 +128,18 @@ namespace NES.CPU
         }
         public static void JSR(Ricoh2AFunctional cpu)
         {
+            static void ReadHighAndJump(Ricoh2AFunctional cpu)
+            {
+                cpu.address.High = cpu.Read(cpu.regs.PC);
+                cpu.regs.PC = cpu.address;
+                cpu.TraceInstruction("JSR", cpu.address);
+            }
+
             cpu.Enqueue(ReadPCToAddress);
             cpu.Enqueue(ReadStackNoOp);
             cpu.Enqueue(PushStackFromPCH);
             cpu.Enqueue(PushStackFromPCL);
-            cpu.Enqueue(c =>
-            {
-                c.address.High = c.Read(c.regs.PC);
-                c.regs.PC = c.address;
-                c.TraceInstruction("JSR", c.address);
-            });
+            cpu.Enqueue(ReadHighAndJump);
         }
         public static void LAX(Ricoh2AFunctional cpu, byte operand)
         {

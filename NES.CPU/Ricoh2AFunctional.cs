@@ -13,7 +13,7 @@ namespace NES.CPU
         private IBus bus;
         private Address address;
         private Address pointer;
-        private Queue<Action<Ricoh2AFunctional>> workQueue = new Queue<Action<Ricoh2AFunctional>>();
+        private Queue<Action<Ricoh2AFunctional>> workQueue = new Queue<Action<Ricoh2AFunctional>>(8);
 
         public event Action<InstructionTrace> InstructionTrace;
 

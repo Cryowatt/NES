@@ -12,7 +12,7 @@ namespace NES.CPU
                 cpu.InstructionTrace(cpu.lastInstruction);
             }
 
-            cpu.currentOpcodeAddress = cpu.regs.PC;
+            cpu.currentOpcodeAddress.Ptr = cpu.regs.PC.Ptr;
             cpu.currentOpcode = cpu.Read(cpu.regs.PC.Ptr++);
 
             switch (cpu.currentOpcode)

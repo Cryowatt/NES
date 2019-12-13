@@ -2,7 +2,8 @@
   "profiles": {
     "NES": {
       "commandName": "Project",
-      "commandLineArgs": "10000"
+      "commandLineArgs": "10000",
+      "workingDirectory": "C:\\Users\\ericc\\Source\\Repos\\Cryowatt\\NES\\NES"
     }
   }
 }
