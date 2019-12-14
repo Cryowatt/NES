@@ -11,9 +11,13 @@ namespace NES.CPU
         private Trace cycleTrace = null;
         private InstructionTrace lastInstruction;
         private IBus bus;
+        private Address stackPointer = 0x0100;
         private Address address;
         private Address pointer;
         private Queue<Action<Ricoh2AFunctional>> workQueue = new Queue<Action<Ricoh2AFunctional>>(8);
+        private CpuRegisters regs;
+        private Address initAddress;
+        private byte operand;
 
         public event Action<InstructionTrace> InstructionTrace;
 
@@ -31,11 +35,14 @@ namespace NES.CPU
 
         public CpuRegisters Registers => (CpuRegisters)this.regs.Clone();
 
-        private CpuRegisters regs;
-        private Address initAddress;
-        private byte operand;
-
-        private Address Stack => (Address)0x0100 + this.regs.S;
+        private Address Stack
+        {
+            get
+            {
+                stackPointer.Low = this.regs.S;
+                return stackPointer;
+            }
+        }
 
         public long CycleCount { get; private set; }
 
@@ -79,19 +86,33 @@ namespace NES.CPU
 
         private static void ReadPCToAddress(Ricoh2AFunctional cpu)
         {
-            cpu.address.Ptr = cpu.Read(cpu.regs.PC.Ptr++);
+            cpu.address.Ptr = cpu.Read(cpu.regs.PC);
+            cpu.regs.PC.Ptr++;
         }
 
         private static void ReadPCToAddressHigh(Ricoh2AFunctional cpu)
         {
-            cpu.address.High = cpu.Read(cpu.regs.PC.Ptr++);
+            cpu.address.High = cpu.Read(cpu.regs.PC);
+            cpu.regs.PC.Ptr++;
         }
 
         private static void ReadOperand(Ricoh2AFunctional cpu)
         {
-            cpu.operand = cpu.Read(cpu.regs.PC.Ptr++);
+            cpu.operand = cpu.Read(cpu.regs.PC);
+            cpu.regs.PC.Ptr++;
         }
 
+        public void QueueOperation(Action<Ricoh2AFunctional, byte> operation)
+        {
+            this.Enqueue(cpu =>
+            {
+                cpu.operand = cpu.Read(cpu.address);
+                operation(cpu, cpu.operand);
+                cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
+            });
+        }
+
+        [Obsolete]
         public static IEnumerable<Action<Ricoh2AFunctional>> Operation(Action<Ricoh2AFunctional, byte> operation)
         {
             // Read-only operation
@@ -106,6 +127,16 @@ namespace NES.CPU
             };
         }
 
+        public void QueueOperation(Func<Ricoh2AFunctional, byte> operation)
+        {
+            this.Enqueue(cpu =>
+            {
+                cpu.Write(cpu.address, operation(cpu));
+                cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
+            });
+        }
+
+        [Obsolete]
         public static IEnumerable<Action<Ricoh2AFunctional>> Operation(Func<Ricoh2AFunctional, byte> operation)
         {
             // Write-only operation
@@ -119,6 +150,51 @@ namespace NES.CPU
             };
         }
 
+        public void QueueOperation(Func<Ricoh2AFunctional, byte, byte> operation)
+        {
+            this.Enqueue(cpu =>
+            {
+                cpu.operand = cpu.Read(cpu.address);
+            });
+            this.Enqueue(cpu =>
+            {
+                cpu.Write(cpu.address, cpu.operand);
+            });
+            this.Enqueue(cpu =>
+            {
+                cpu.Write(cpu.address, operation(cpu, cpu.operand));
+                cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
+            });
+        }
+
+        public void AbsoluteAddressing(Action<Ricoh2AFunctional, byte> operation) =>
+            AbsoluteAddressing(() => QueueOperation(operation));
+        public void AbsoluteAddressing(Func<Ricoh2AFunctional, byte> operation) =>
+            AbsoluteAddressing(() => QueueOperation(operation));
+        public void AbsoluteAddressing(Func<Ricoh2AFunctional, byte, byte> operation) =>
+            AbsoluteAddressing(() => QueueOperation(operation));
+
+        private void AbsoluteAddressing(Action queueOperation)
+        {
+            Enqueue(ReadPCToAddress);
+            Enqueue(ReadPCToAddressHigh);
+            queueOperation();
+        }
+
+        private void AbsoluteAddressing(Action<Ricoh2AFunctional> operation)
+        {
+            void Work(Ricoh2AFunctional cpu)
+            {
+                ReadPCToAddressHigh(cpu);
+                cpu.regs.PC = cpu.address;
+                cpu.TraceInstruction(operation.Method.Name, cpu.address);
+            }
+
+            Enqueue(ReadPCToAddress);
+            Enqueue(Work);
+        }
+
+        [Obsolete]
         public static IEnumerable<Action<Ricoh2AFunctional>> Operation(Func<Ricoh2AFunctional, byte, byte> operation)
         {
             // Read-Write operation
@@ -140,10 +216,13 @@ namespace NES.CPU
             };
         }
 
+        [Obsolete]
         public static void AbsoluteAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation) =>
             AbsoluteAddressing(cpu, Operation(operation));
+        [Obsolete]
         public static void AbsoluteAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
             AbsoluteAddressing(cpu, Operation(operation));
+        [Obsolete]
         public static void AbsoluteAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
             AbsoluteAddressing(cpu, Operation(operation));
 
@@ -160,93 +239,38 @@ namespace NES.CPU
             cpu.workQueue.Enqueue(Work);
         }
 
+        [Obsolete]
         private static void AbsoluteAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
         {
             cpu.Enqueue(ReadPCToAddress);
             cpu.Enqueue(ReadPCToAddressHigh);
-            //cpu.Enqueue(c => c.operand = c.Read(c.address));
-            //cpu.Enqueue(c => c.Write(c.address, c.operand));
-            //cpu.Enqueue(c=>c.Write(c.address, ))
             cpu.Enqueue(operations);
-            //// 2    PC     R  fetch low byte of address, increment PC
-            //address.Ptr = Read(this.regs.PC++);
-            //yield return cycleTrace;
-
-            //// 3    PC     R  fetch high byte of address, increment PC
-            //address.High = Read(this.regs.PC++);
-            //yield return cycleTrace;
-
-            //// 4  address  R  read from effective address
-            //var operand = Read(address);
-            //yield return cycleTrace;
-
-            //// 5  address  W  write the value back to effective address,
-            ////                and do the operation on it
-            //Write(address, operand);
-            //var result = microcode(operand);
-            //yield return cycleTrace;
-
-            //// 6  address  W  write the new value to effective address
-            //Write(address, result);
-            //yield return cycleTrace;
-            //TraceInstruction(microcode.Method.Name, address);
-
-            //void Work(Ricoh2AFunctional cpu)
-            //{
-            //    ReadPCToAddressHigh(cpu);
-            //    cpu.regs.PC = cpu.address;
-            //    cpu.TraceInstruction(operation.Method.Name, cpu.address);
-            //}
-
-            //cpu.workQueue.Enqueue(ReadPCToAddress);
-            //cpu.workQueue.Enqueue(operations);
         }
 
-        private static void AbsoluteIndirectAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional> operation)
+        private void AbsoluteIndirectAddressing(Action<Ricoh2AFunctional> operation)
         {
-            cpu.Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
-            cpu.Enqueue(c => c.pointer.High = c.Read(c.regs.PC++));
-            cpu.Enqueue(c => c.address.Ptr = c.Read(c.pointer));
-            cpu.Enqueue(c =>
+            Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
+            Enqueue(c => c.pointer.High = c.Read(c.regs.PC++));
+            Enqueue(c => c.address.Ptr = c.Read(c.pointer));
+            Enqueue(c =>
             {
                 c.pointer.Low++;
                 c.address.High = c.Read(c.pointer);
                 operation(c);
                 c.TraceInstruction(operation.Method.Name, c.address);
             });
-            ////      2     PC      R  fetch pointer address low, increment PC
-            //pointer.Ptr = Read(this.regs.PC++);
-            //yield return cycleTrace;
-
-            ////      3     PC      R  fetch pointer address high, increment PC
-            //pointer.High = Read(this.regs.PC++);
-            //yield return cycleTrace;
-
-            ////      4   pointer   R  fetch low address to latch
-            //address.Ptr = Read(pointer);
-            //yield return cycleTrace;
-
-            ////      5  pointer+1* R  fetch PCH, copy latch to PCL
-            //pointer.Low++;
-            //address.High = Read(pointer);
-            //microcode(address);
-            //yield return cycleTrace;
-            //TraceInstruction(microcode.Method.Name, pointer);
-
-            ////Note: * The PCH will always be fetched from the same page
-            ////        than PCL, i.e. page boundary crossing is not handled.
         }
 
-        private static void AbsoluteIndexedAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation, byte index)
+        private void AbsoluteIndexedAddressing(Action<Ricoh2AFunctional, byte> operation, byte index)
         {
-            cpu.Enqueue(c => c.address.Ptr = c.Read(c.regs.PC++));
-            cpu.Enqueue(c =>
+            Enqueue(c => c.address.Ptr = c.Read(c.regs.PC++));
+            Enqueue(c =>
             {
                 c.address.High = c.Read(c.regs.PC++);
                 c.pointer.Ptr = (ushort)(c.address.Ptr + index);
                 c.address.Low = c.pointer.Low;
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.operand = c.Read(c.address);
                 if (c.address.High == c.pointer.High)
@@ -256,36 +280,36 @@ namespace NES.CPU
                 else
                 {
                     c.address.High = c.pointer.High;
-                    c.Enqueue(Operation(operation));
+                    c.QueueOperation(operation);
                 }
             });
         }
+        private void AbsoluteIndexedAddressing(Func<Ricoh2AFunctional, byte> operation, byte index) =>
+            AbsoluteIndexedAddressing(() => QueueOperation(operation), index);
+        private void AbsoluteIndexedAddressing(Func<Ricoh2AFunctional, byte, byte> operation, byte index) =>
+            AbsoluteIndexedAddressing(() => QueueOperation(operation), index);
 
-        private static void AbsoluteIndexedAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation, byte index) =>
-            AbsoluteIndexedAddressing(cpu, Operation(operation), index);
-        private static void AbsoluteIndexedAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation, byte index) =>
-            AbsoluteIndexedAddressing(cpu, Operation(operation), index);
-
-        private static void AbsoluteIndexedAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations, byte index)
+        private void AbsoluteIndexedAddressing(Action queueOperation, byte index)
         {
-            cpu.Enqueue(c => c.address.Ptr = c.Read(c.regs.PC++));
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCToAddress);
+            Enqueue(c =>
             {
-                c.address.High = c.Read(c.regs.PC++);
+                c.address.High = c.Read(c.regs.PC);
+                c.regs.PC.Ptr++;
                 c.pointer.Ptr = (ushort)(c.address.Ptr + index);
                 c.address.Low = c.pointer.Low;
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.operand = c.Read(c.address);
                 c.address.High = c.pointer.High;
             });
-            cpu.Enqueue(operations);
+            queueOperation();
         }
 
-        private static void AccumulatorAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation)
+        private void AccumulatorAddressing(Func<Ricoh2AFunctional, byte, byte> operation)
         {
-            cpu.Enqueue(cpu =>
+            Enqueue(cpu =>
             {
                 cpu.Read(cpu.regs.PC);
                 cpu.regs.A = operation(cpu, cpu.regs.A);
@@ -293,19 +317,32 @@ namespace NES.CPU
             });
         }
 
-        private static void ImmediateAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation)
+        private void ImmediateAddressing(Action<Ricoh2AFunctional, byte> operation)
         {
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
-                c.operand = c.Read(c.regs.PC++);
+                c.operand = c.Read(c.regs.PC);
+                c.regs.PC++;
                 operation(c, c.operand);
                 c.TraceInstruction(operation.Method.Name, c.operand);
             });
         }
 
-        private static void ImpliedAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional> operation)
+        [Obsolete]
+        private static void ImmediateAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation)
         {
             cpu.Enqueue(c =>
+            {
+                c.operand = c.Read(c.regs.PC);
+                c.regs.PC++;
+                operation(c, c.operand);
+                c.TraceInstruction(operation.Method.Name, c.operand);
+            });
+        }
+
+        private void ImpliedAddressing(Action<Ricoh2AFunctional> operation)
+        {
+            Enqueue(c =>
             {
                 c.Read(c.regs.PC);
                 operation(c);
@@ -313,13 +350,41 @@ namespace NES.CPU
             });
         }
 
+        public void IndexedIndirectAddressing(Action<Ricoh2AFunctional, byte> operation) =>
+            IndexedIndirectAddressing(() => QueueOperation(operation));
+        public void IndexedIndirectAddressing(Func<Ricoh2AFunctional, byte> operation) =>
+            IndexedIndirectAddressing(() => QueueOperation(operation));
+        public void IndexedIndirectAddressing(Func<Ricoh2AFunctional, byte, byte> operation) =>
+            IndexedIndirectAddressing(() => QueueOperation(operation));
+
+        public void IndexedIndirectAddressing(Action queueOperation)
+        {
+            Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
+            Enqueue(c =>
+            {
+                c.Read(c.pointer);
+                c.pointer.Low += c.regs.X;
+            });
+            Enqueue(c => c.address.Ptr = c.Read(c.pointer));
+            Enqueue(c =>
+            {
+                c.pointer.Low++;
+                c.address.High = c.Read(c.pointer);
+            });
+            queueOperation();
+        }
+
+        [Obsolete]
         public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation) =>
             IndexedIndirectAddressing(cpu, Operation(operation));
+        [Obsolete]
         public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
             IndexedIndirectAddressing(cpu, Operation(operation));
+        [Obsolete]
         public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
             IndexedIndirectAddressing(cpu, Operation(operation));
 
+        [Obsolete]
         public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
         {
             cpu.Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
@@ -337,87 +402,21 @@ namespace NES.CPU
             cpu.Enqueue(operations);
         }
 
-        public IEnumerable<object> IndexedIndirectAddressing(Func<byte> microcode)
+        public void IndirectIndexedAddressing(Action<Ricoh2AFunctional, byte> operation)
         {
-
-            // 2      PC       R  fetch pointer address, increment PC
-            pointer.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3    pointer    R  read from the address, add X to it
-            Read(pointer);
-            pointer.Low += this.regs.X;
-            yield return cycleTrace;
-
-            // 4   pointer+X   R  fetch effective address low
-            address.Ptr = Read(pointer);
-            yield return cycleTrace;
-
-            // 5  pointer+X+1  R  fetch effective address high
-            pointer.Low++;
-            address.High = Read(pointer);
-            yield return cycleTrace;
-
-            // 6    address    W  write to effective address
-            Write(address, microcode());
-            yield return cycleTrace;
-            TraceInstruction(microcode.Method.Name, pointer);
-        }
-
-        public IEnumerable<object> IndexedIndirectAddressing(Func<byte, byte> microcode)
-        {
-            // 2      PC       R  fetch pointer address, increment PC
-            pointer.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3    pointer    R  read from the address, add X to it
-            Read(pointer);
-            pointer.Low += this.regs.X;
-            yield return cycleTrace;
-
-            // 4   pointer+X   R  fetch effective address low
-            address.Ptr = Read(pointer);
-            yield return cycleTrace;
-
-            // 5  pointer+X+1  R  fetch effective address high
-            pointer.Low++;
-            address.High = Read(pointer);
-            yield return cycleTrace;
-
-            // 6    address    R  read from effective address
-            var operand = Read(address);
-            yield return cycleTrace;
-
-            // 7    address    W  write the value back to effective address,
-            //                    and do the operation on it
-            var result = microcode(operand);
-            Write(address, operand);
-            yield return cycleTrace;
-
-            // 8    address    W  write the new value to effective address
-            Write(address, result);
-            yield return cycleTrace;
-
-            //Note: The effective address is always fetched from zero page,
-            //      i.e. the zero page boundary crossing is not handled.
-            TraceInstruction(microcode.Method.Name, pointer);
-        }
-
-        public static void IndirectIndexedAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation)
-        {
-            cpu.Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
-            cpu.Enqueue(c =>
+            Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
+            Enqueue(c =>
             {
                 c.address.Ptr = c.Read(c.pointer);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.pointer.Low++;
                 c.address.High = c.Read(c.pointer);
                 c.pointer.Ptr = (ushort)(c.address.Ptr + c.regs.Y);
                 c.address.Low = c.pointer.Low;
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.operand = c.Read(c.address);
                 if (c.address.High == c.pointer.High)
@@ -427,124 +426,82 @@ namespace NES.CPU
                 else
                 {
                     c.address.High = c.pointer.High;
-                    cpu.Enqueue(Operation(operation));
+                    c.QueueOperation(operation);
                 }
             });
         }
 
-        public static void IndirectIndexedAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
-            IndirectIndexedAddressing(cpu, Operation(operation));
+        public void IndirectIndexedAddressing(Func<Ricoh2AFunctional, byte> operation) =>
+            IndirectIndexedAddressing(() => QueueOperation(operation));
 
-        public static void IndirectIndexedAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
-            IndirectIndexedAddressing(cpu, Operation(operation));
+        public void IndirectIndexedAddressing(Func<Ricoh2AFunctional, byte, byte> operation) =>
+            IndirectIndexedAddressing(() => QueueOperation(operation));
 
-        private static void IndirectIndexedAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
+        private void IndirectIndexedAddressing(Action queueOperation)
         {
-            cpu.Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
-            cpu.Enqueue(c =>
+            Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
+            Enqueue(c =>
             {
                 c.address.Ptr = c.Read(c.pointer);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.pointer.Low++;
                 c.address.High = c.Read(c.pointer);
                 c.pointer.Ptr = (ushort)(c.address.Ptr + c.regs.Y);
                 c.address.Low = c.pointer.Low;
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.Read(c.address);
                 c.address.High = c.pointer.High;
             });
-            cpu.Enqueue(operations);
+            queueOperation();
         }
 
-        public IEnumerable<object> IndirectIndexedAddressing(Func<byte> microcode)
+        private void RelativeAddressing(Func<Ricoh2AFunctional, bool> operation)
         {
-            // 2      PC       R  fetch pointer address, increment PC
-            pointer.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3    pointer    R  fetch effective address low
-            address.Ptr = Read(pointer++);
-            yield return cycleTrace;
-
-            // 4   pointer+1   R  fetch effective address high,
-            //                    add Y to low byte of effective address
-            address.High = Read(pointer);
-            var low = address.Low + this.regs.Y;
-            address.Low += (byte)low;
-            yield return cycleTrace;
-
-            // 5   address+Y*  R  read from effective address,
-            //                    fix high byte of effective address
-            Read(address);
-            address.Ptr += (ushort)(low & 0xff00);
-            yield return cycleTrace;
-
-            // 6   address+Y   W  write to effective address
-            Write(address, microcode());
-            yield return cycleTrace;
-
-            //Notes: The effective address is always fetched from zero page,
-            //       i.e. the zero page boundary crossing is not handled.
-
-            //       * The high byte of the effective address may be invalid
-            //         at this time, i.e. it may be smaller by $100.
-            TraceInstruction(microcode.Method.Name, pointer);
-        }
-
-
-        public IEnumerable<object> IndirectIndexedAddressing(Func<byte, byte> microcode)
-        {
-            // 2      PC       R  fetch pointer address, increment PC
-            pointer.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3    pointer    R  fetch effective address low
-            address.Ptr = Read(pointer);
-            yield return cycleTrace;
-
-            // 4   pointer+1   R  fetch effective address high,
-            //                    add Y to low byte of effective address
-            pointer.Low++;
-            address.High = Read(pointer);
-            var low = address.Low + this.regs.Y;
-            address.Low = (byte)low;
-            yield return cycleTrace;
-
-            // 5   address+Y*  R  read from effective address,
-            //                    fix high byte of effective address
-            if (low > byte.MaxValue)
+            void Conditional(Ricoh2AFunctional cpu)
             {
-                Read(address);
-                address.Ptr += (ushort)(low & 0xff00);
-                yield return cycleTrace;
+                ReadOperand(cpu);
+                cpu.address.Ptr = (ushort)(cpu.regs.PC.Ptr + (sbyte)cpu.operand);
+
+                if (operation(cpu))
+                {
+                    cpu.Enqueue(Jump);
+                }
+                else
+                {
+                    cpu.TraceInstruction(operation.Method.Name, cpu.address);
+                }
             }
 
-            // 6   address+Y   R  read from effective address
-            var operand = Read(address);
-            yield return cycleTrace;
+            void Jump(Ricoh2AFunctional cpu)
+            {
+                ReadPCNoOp(cpu);
+                cpu.regs.PC.Low = cpu.address.Low;
 
-            // 7   address+Y   W  write the value back to effective address,
-            //                    and do the operation on it
-            var result = microcode(operand);
-            Write(address, operand);
-            yield return cycleTrace;
+                if (cpu.regs.PC.High != cpu.address.High)
+                {
+                    cpu.Enqueue(FixHigh);
+                }
+                else
+                {
+                    cpu.TraceInstruction(operation.Method.Name, cpu.address);
+                }
+            }
 
-            // 8   address+Y   W  write the new value to effective address
-            Write(address, result);
-            yield return cycleTrace;
-            TraceInstruction(microcode.Method.Name, pointer);
+            void FixHigh(Ricoh2AFunctional cpu)
+            {
+                cpu.Read(cpu.regs.PC);
+                cpu.regs.PC.High = cpu.address.High;
+                cpu.TraceInstruction(operation.Method.Name, cpu.address);
+            }
 
-            //Notes: The effective address is always fetched from zero page,
-            //       i.e. the zero page boundary crossing is not handled.
-
-            //       * The high byte of the effective address may be invalid
-            //         at this time, i.e. it may be smaller by $100.
+            Enqueue(Conditional);
         }
 
+        [Obsolete]
         private static void RelativeAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, bool> operation)
         {
             void Conditional(Ricoh2AFunctional cpu)
@@ -584,147 +541,51 @@ namespace NES.CPU
                 cpu.TraceInstruction(operation.Method.Name, cpu.address);
             }
 
-            //cpu.Enqueue(ReadOperand);
             cpu.Enqueue(Conditional);
-
-            ////2     PC      R  fetch operand, increment PC
-            //var operand = Read(this.regs.PC++);
-            //var jumpAddress = this.regs.PC + (sbyte)operand;
-            ////yield return cycleTrace;
-
-            //if (microcode())
-            //{
-            //    //3     PC      R  Fetch opcode of next instruction,
-            //    //                 If branch is taken, add operand to PCL.
-            //    //                 Otherwise increment PC.
-            //    Read(this.regs.PC);
-            //    this.regs.PC.Low = jumpAddress.Low;
-            //    yield return cycleTrace;
-
-            //    if (this.regs.PC.High != jumpAddress.High)
-            //    {
-            //        //4+    PC*     R  Fetch opcode of next instruction.
-            //        //                 Fix PCH. If it did not change, increment PC.
-            //        Read(this.regs.PC);
-            //        this.regs.PC.High = jumpAddress.High;
-            //        yield return cycleTrace;
-            //    }
-            //}
-
-            //yield return cycleTrace;
         }
 
+        private void ZeroPageAddressing(Action<Ricoh2AFunctional, byte> operation) =>
+            ZeroPageAddressing(() => QueueOperation(operation));
+        private void ZeroPageAddressing(Func<Ricoh2AFunctional, byte> operation) =>
+            ZeroPageAddressing(() => QueueOperation(operation));
+        private void ZeroPageAddressing(Func<Ricoh2AFunctional, byte, byte> operation) =>
+            ZeroPageAddressing(() => QueueOperation(operation));
+
+        private void ZeroPageAddressing(Action queueOperation)
+        {
+            Enqueue(ReadPCToAddress);
+            queueOperation();
+        }
+
+        [Obsolete]
         private static void ZeroPageAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation) =>
             ZeroPageAddressing(cpu, Operation(operation));
+        [Obsolete]
         private static void ZeroPageAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
             ZeroPageAddressing(cpu, Operation(operation));
+        [Obsolete]
         private static void ZeroPageAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
             ZeroPageAddressing(cpu, Operation(operation));
 
+        [Obsolete]
         private static void ZeroPageAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
         {
             cpu.Enqueue(ReadPCToAddress);
             cpu.Enqueue(operations);
         }
 
-        private IEnumerable<object> ZeroPageAddressing(Func<byte> microcode)
+        private void ZeroPageIndexedAddressing(Action<Ricoh2AFunctional, byte> operation, byte index) =>
+            ZeroPageIndexedAddressing(() => QueueOperation(operation), index);
+        private void ZeroPageIndexedAddressing(Func<Ricoh2AFunctional, byte> operation, byte index) =>
+            ZeroPageIndexedAddressing(() => QueueOperation(operation), index);
+        private void ZeroPageIndexedAddressing(Func<Ricoh2AFunctional, byte, byte> operation, byte index) =>
+            ZeroPageIndexedAddressing(() => QueueOperation(operation), index);
+
+        private void ZeroPageIndexedAddressing(Action queueOperation, byte index)
         {
-            // 2    PC     R  fetch address, increment PC
-            address.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3  address  W  write register to effective address
-            Write(address, microcode());
-            yield return cycleTrace;
-            TraceInstruction(microcode.Method.Name, address);
-        }
-
-        private IEnumerable<object> ZeroPageAddressing(Func<byte, byte> microcode)
-        {
-            // 2    PC     R  fetch address, increment PC
-            address.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3  address  R  read from effective address
-            var operand = Read(address);
-            yield return cycleTrace;
-
-            // 4  address  W  write the value back to effective address,
-            //                and do the operation on it
-            Write(address, operand);
-            var result = microcode(operand);
-            yield return cycleTrace;
-
-            // 5  address  W  write the new value to effective address
-            Write(address, result);
-            yield return cycleTrace;
-            TraceInstruction(microcode.Method.Name, address);
-        }
-
-        private static void ZeroPageIndexedAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation, byte index) =>
-            ZeroPageIndexedAddressing(cpu, Operation(operation), index);
-        private static void ZeroPageIndexedAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation, byte index) =>
-            ZeroPageIndexedAddressing(cpu, Operation(operation), index);
-        private static void ZeroPageIndexedAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation, byte index) =>
-            ZeroPageIndexedAddressing(cpu, Operation(operation), index);
-
-        private static void ZeroPageIndexedAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations, byte index)
-        {
-            cpu.Enqueue(ReadPCToAddress);
-            cpu.Enqueue(c => c.address.Low += index);
-            cpu.Enqueue(operations);
-        }
-
-        private IEnumerable<object> ZeroPageIndexedAddressing(Func<byte> microcode, byte index)
-        {
-            // 2     PC      R  fetch address, increment PC
-            address.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3   address   R  read from address, add index register to it
-            Read(address);
-            address.Low += index;
-            yield return cycleTrace;
-
-            // 4  address+I* W  write to effective address
-            Write(address, microcode());
-            yield return cycleTrace;
-
-            //Notes: I denotes either index register (X or Y).
-
-            //       * The high byte of the effective address is always zero,
-            //         i.e. page boundary crossings are not handled.
-            TraceInstruction(microcode.Method.Name, address);
-        }
-
-        private IEnumerable<object> ZeroPageIndexedAddressing(Func<byte, byte> microcode, byte index)
-        {
-            // 2     PC      R  fetch address, increment PC
-            address.Ptr = Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3   address   R  read from address, add index register to it
-            Read((Address)address);
-            address.Low += index;
-            yield return cycleTrace;
-
-            // 4  address+X* R  read from effective address
-            var operand = Read(address);
-            yield return cycleTrace;
-
-            // 5  address+X* W  write the value back to effective address,
-            //                  and do the operation on it
-            Write(address, operand);
-            var result = microcode(operand);
-            yield return cycleTrace;
-
-            // 6  address+X* W  write the new value to effective address
-            Write(address, result);
-            yield return cycleTrace;
-
-            //Note: * The high byte of the effective address is always zero,
-            //        i.e. page boundary crossings are not handled.
-            TraceInstruction(microcode.Method.Name, address);
+            Enqueue(ReadPCToAddress);
+            Enqueue(c => c.address.Low += index);
+            queueOperation();
         }
 
         private static void ReadResetToPCL(Ricoh2AFunctional cpu)
@@ -748,7 +609,7 @@ namespace NES.CPU
         {
             if (workQueue.Count == 0)
             {
-                Enqueue(QueueOpCode);
+                Enqueue(cpu => QueueOpCode());
             }
 
             var work = workQueue.Dequeue();
@@ -789,17 +650,15 @@ namespace NES.CPU
 
         private byte Read(Address address)
         {
-            var result = this.bus.Read(address);
-            //Console.WriteLine("{0} => {1}", address, result);
-            SetTraceBusAction(address, result, isWrite: false);
-            return result;
+            var value = this.bus.Read(address);
+            SetTraceBusAction(address, value, isWrite: false);
+            return value;
         }
 
         private void Write(Address address, byte value)
         {
-            //Console.WriteLine("{0} <= {1}", address, value);
-            SetTraceBusAction(address, value, isWrite: true);
             this.bus.Write(address, value);
+            SetTraceBusAction(address, value, isWrite: true);
         }
 
         [Conditional("DEBUG")]

@@ -98,7 +98,8 @@ namespace NES.CPU.Tests
 
         private void OpcodeTest(Action<Ricoh2A, byte> opcode, MicrocodeTestInput input)
         {
-            var rambus = new Bus(new Ram(new AddressRange(0x0000, 0xffff), 0xffff));
+            var ram = new Ram(new AddressRange(0x0000, 0xffff), 0xffff);
+            var rambus = new Bus(ram, ram, ram, ram, ram, ram, ram, ram);
             var cpu = new Ricoh2A(rambus, input.InitialState);
             opcode(cpu, input.Operand);
             Assert.Equal(input.ExpectedState, cpu.Registers);
@@ -106,7 +107,8 @@ namespace NES.CPU.Tests
 
         private void OpcodeTest(Func<Ricoh2A, byte, byte> opcode, MicrocodeTestInput input)
         {
-            var rambus = new Bus(new Ram(new AddressRange(0x0000, 0xffff), 0xffff));
+            var ram = new Ram(new AddressRange(0x0000, 0xffff), 0xffff);
+            var rambus = new Bus(ram, ram, ram, ram, ram, ram, ram, ram);
             var cpu = new Ricoh2A(rambus, input.InitialState);
             var result = opcode(cpu, input.Operand);
             Assert.Equal(input.ExpectedResult, result);

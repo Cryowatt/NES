@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.IO.MemoryMappedFiles;
 
 namespace NES.CPU.Mappers
@@ -7,35 +8,39 @@ namespace NES.CPU.Mappers
     {
         private Memory<byte> ram = new Memory<byte>(new byte[0x1000]);
         private readonly RomImage image;
+        private readonly MemoryHandle characterRomData;
+        private readonly MemoryHandle programRomData;
 
         public Mapper0(RomImage image)
         {
             this.image = image;
+            this.characterRomData = image.CharacterRomData.Pin();
+            this.programRomData = image.ProgramRomData.Pin();
         }
 
         public AddressRange AddressRange { get; } = new AddressRange(0x6000, 0xffff);
 
-        public byte Read(Address address)
+        public unsafe byte Read(Address address)
         {
             //CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
-            if (0x6000 <= address && address < 0x8000)
+            if (0x6000 <= address.Ptr && address.Ptr < 0x8000)
             {
                 return ram.Span[address - 0x06000];
             }
-            else if (0x8000 <= address && address < 0xC000)
+            else if (0x8000 <= address.Ptr && address.Ptr < 0xC000)
             {
                 //CPU $8000-$BFFF: First 16 KB of ROM.
-                return image.ProgramRomData.Span[address - 0x8000];
+                return *((byte*)programRomData.Pointer + (address.Ptr - 0x8000));
             }
-            else if (0xC000 <= address && image.ProgramRomData.Length == 0x4000)
+            else if (0xC000 <= address.Ptr && image.ProgramRomSize == 1)
             {
                 //CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
-                return image.ProgramRomData.Span[address - 0xC000];
+                return *((byte*)programRomData.Pointer + (address.Ptr - 0xC000));
             }
-            else if (0xC000 <= address && image.ProgramRomData.Length == 0x8000)
+            else if (0xC000 <= address.Ptr && image.ProgramRomSize == 2)
             {
                 //CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
-                return image.ProgramRomData.Span[address - 0x8000];
+                return *((byte*)programRomData.Pointer + (address.Ptr - 0x8000));
             }
             else
             {

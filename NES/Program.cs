@@ -60,14 +60,14 @@ namespace NES
 
             //BothCpu(romFile, runCycles);
             Funccpu(mapper, runCycles);
-            Statecpu(mapper, runCycles);
+            //Statecpu(mapper, runCycles);
             TotalFuncTime = TimeSpan.Zero;
             TotalStateTime = TimeSpan.Zero;
 
             for (int i = 0; i < 20; i++)
             {
-                Console.WriteLine("State Machine CPU");
-                Statecpu(mapper, runCycles);
+                //Console.WriteLine("State Machine CPU");
+                //Statecpu(mapper, runCycles);
                 Console.WriteLine("Functional CPU");
                 Funccpu(mapper, runCycles);
             }

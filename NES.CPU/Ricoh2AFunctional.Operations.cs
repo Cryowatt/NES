@@ -41,14 +41,14 @@ namespace NES.CPU
         public static bool BMI(Ricoh2AFunctional cpu) => cpu.regs.Negative;
         public static bool BNE(Ricoh2AFunctional cpu) => !cpu.regs.Zero;
         public static bool BPL(Ricoh2AFunctional cpu) => !cpu.regs.Negative;
-        public static void BRK(Ricoh2AFunctional cpu)
+        public void BRK()
         {
-            cpu.Enqueue(c => c.Read(c.regs.PC.Ptr++));
-            cpu.Enqueue(PushStackFromPCH);
-            cpu.Enqueue(PushStackFromPCL);
-            cpu.Enqueue(PushStackFromP);
-            cpu.Enqueue(c => c.regs.PC.Low = c.Read(0xfffe));
-            cpu.Enqueue(c =>
+            Enqueue(c => c.Read(c.regs.PC.Ptr++));
+            Enqueue(PushStackFromPCH);
+            Enqueue(PushStackFromPCL);
+            Enqueue(PushStackFromP);
+            Enqueue(c => c.regs.PC.Low = c.Read(0xfffe));
+            Enqueue(c =>
             {
                 c.regs.PC.High = c.Read(0xffff);
                 c.TraceInstruction("BRK");
@@ -99,34 +99,7 @@ namespace NES.CPU
             return operand;
         }
         public static void JMP(Ricoh2AFunctional cpu) => cpu.regs.PC = cpu.address;
-        public IEnumerable<object> JSR()
-        {
-            // 2    PC     R  fetch low address byte, increment PC
-            Address address = this.Read(this.regs.PC++);
-            yield return cycleTrace;
-
-            // 3  $0100,S  R  internal operation (predecrement S?)
-            this.Read(this.Stack);
-            yield return cycleTrace;
-
-            // 4  $0100,S  W  push PCH on stack, decrement S
-            this.Write(this.Stack, this.regs.PC.High);
-            this.regs.S--;
-            yield return cycleTrace;
-
-            // 5  $0100,S  W  push PCL on stack, decrement S
-            this.Write(this.Stack, this.regs.PC.Low);
-            this.regs.S--;
-            yield return cycleTrace;
-
-            // 6    PC     R  copy low address byte to PCL, fetch high address
-            //                byte to PCH
-            address.High = this.Read(this.regs.PC);
-            this.regs.PC = address;
-            yield return cycleTrace;
-            TraceInstruction("JSR", address);
-        }
-        public static void JSR(Ricoh2AFunctional cpu)
+        public void JSR()
         {
             static void ReadHighAndJump(Ricoh2AFunctional cpu)
             {
@@ -135,11 +108,11 @@ namespace NES.CPU
                 cpu.TraceInstruction("JSR", cpu.address);
             }
 
-            cpu.Enqueue(ReadPCToAddress);
-            cpu.Enqueue(ReadStackNoOp);
-            cpu.Enqueue(PushStackFromPCH);
-            cpu.Enqueue(PushStackFromPCL);
-            cpu.Enqueue(ReadHighAndJump);
+            Enqueue(ReadPCToAddress);
+            Enqueue(ReadStackNoOp);
+            Enqueue(PushStackFromPCH);
+            Enqueue(PushStackFromPCL);
+            Enqueue(ReadHighAndJump);
         }
         public static void LAX(Ricoh2AFunctional cpu, byte operand)
         {
@@ -159,48 +132,48 @@ namespace NES.CPU
         public static void NOP(Ricoh2AFunctional cpu) { }
         public static void NOP(Ricoh2AFunctional cpu, byte operand) { }
         public static void ORA(Ricoh2AFunctional cpu, byte operand) => cpu.regs.A |= operand;
-        public static void PHA(Ricoh2AFunctional cpu)
+        public void PHA()
         {
-            cpu.Enqueue(ReadPCNoOp);
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCNoOp);
+            Enqueue(c =>
             {
-                c.Write(c.Stack, cpu.regs.A);
+                c.Write(c.Stack, c.regs.A);
                 c.regs.S--;
                 c.TraceInstruction("PHA");
             });
         }
-        public static void PHP(Ricoh2AFunctional cpu)
+        public void PHP()
         {
-            cpu.Enqueue(ReadPCNoOp);
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCNoOp);
+            Enqueue(c =>
             {
-                c.Write(c.Stack, (byte)(cpu.regs.P | StatusFlags.Default));
+                c.Write(c.Stack, (byte)(c.regs.P | StatusFlags.Default));
                 c.regs.S--;
                 c.TraceInstruction("PHP");
             });
         }
-        public static void PLA(Ricoh2AFunctional cpu)
+        public void PLA()
         {
-            cpu.Enqueue(ReadPCNoOp);
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCNoOp);
+            Enqueue(c =>
             {
                 c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.A = c.Read(c.Stack);
                 c.TraceInstruction("PLA");
             });
         }
-        public static void PLP(Ricoh2AFunctional cpu)
+        public void PLP()
         {
-            cpu.Enqueue(ReadPCNoOp);
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCNoOp);
+            Enqueue(c =>
             {
                 c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.P = (StatusFlags)c.Read(c.Stack);
@@ -235,76 +208,48 @@ namespace NES.CPU
             ADC(cpu, result);
             return result;
         }
-        public static void RTI(Ricoh2AFunctional cpu)
+        public void RTI()
         {
-            cpu.Enqueue(ReadPCNoOp);
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCNoOp);
+            Enqueue(c =>
             {
                 c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.P = (StatusFlags)c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.PC.Low = c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.PC.High = c.Read(c.Stack);
                 c.TraceInstruction("RTI");
             });
         }
-        //public IEnumerable<object> RTS()
-        //{
-        //    // 2    PC     R  read next instruction byte (and throw it away)
-        //    this.Read(this.regs.PC);
-        //    yield return cycleTrace;
-
-        //    // 3  $0100,S  R  increment S
-        //    this.Read(this.Stack);
-        //    checked
-        //    {
-        //        this.regs.S++;
-        //        yield return cycleTrace;
-
-        //        // 4  $0100,S  R  pull PCL from stack, increment S
-        //        this.regs.PC.Low = this.Read(this.Stack);
-        //        this.regs.S++;
-        //        yield return cycleTrace;
-        //    }
-
-        //    // 5  $0100,S  R  pull PCH from stack
-        //    this.regs.PC.High = this.Read(this.Stack);
-        //    yield return cycleTrace;
-
-        //    // 6    PC     R  increment PC
-        //    this.Read(this.regs.PC++);
-        //    yield return cycleTrace;
-        //    TraceInstruction("RTS");
-        //}
-        public static void RTS(Ricoh2AFunctional cpu)
+        public void RTS()
         {
-            cpu.Enqueue(ReadPCNoOp);
-            cpu.Enqueue(c =>
+            Enqueue(ReadPCNoOp);
+            Enqueue(c =>
             {
                 c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.PC.Low = c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.regs.S++;
                 c.regs.PC.High = c.Read(c.Stack);
             });
-            cpu.Enqueue(c =>
+            Enqueue(c =>
             {
                 c.Read(c.regs.PC++);
                 c.TraceInstruction("RTS", c.regs.PC);
@@ -336,23 +281,6 @@ namespace NES.CPU
         public static void TXA(Ricoh2AFunctional cpu) => cpu.regs.A = cpu.regs.X;
         public static void TXS(Ricoh2AFunctional cpu) => cpu.regs.S = cpu.regs.X;
         public static void TYA(Ricoh2AFunctional cpu) => cpu.regs.A = cpu.regs.Y;
-        private IEnumerable<object> PullValue(Action<byte> setter, [CallerMemberName] string caller = null)
-        {
-            // 2    PC     R  read next instruction byte (and throw it away)
-            this.Read(this.regs.PC);
-            yield return cycleTrace;
-
-            // 3  $0100,S  R  increment S
-            this.Read(this.Stack);
-            this.regs.S++;
-            yield return cycleTrace;
-
-            // 4  $0100,S  R  pull register from stack
-            var value = this.Read(this.Stack);
-            setter(value);
-            yield return cycleTrace;
-            TraceInstruction(caller);
-        }
 
         private void SetResultFlags(byte result)
         {
