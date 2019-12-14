@@ -1,25 +1,30 @@
-﻿namespace NES.CPU
+﻿using System;
+using System.Buffers;
+
+namespace NES.CPU
 {
     public class Ram : IBusDevice
     {
-        private byte[] memory;
+        private Memory<byte> memory;
+        private MemoryHandle memoryHandle;
 
         public Ram(AddressRange addressRange, int size)
         {
             this.AddressRange = addressRange;
-            this.memory = new byte[size];
+            this.memory = new byte[size].AsMemory();
+            this.memoryHandle = this.memory.Pin();
         }
 
         public AddressRange AddressRange { get; private set; }
 
-        public byte Read(Address address)
+        public unsafe byte Read(Address address)
         {
-            return this.memory[address % this.memory.Length];
+            return *((byte*)this.memoryHandle.Pointer + (address.Ptr % this.memory.Length));
         }
 
-        public void Write(Address address, byte value)
+        public unsafe void Write(Address address, byte value)
         {
-            this.memory[address % this.memory.Length] = value;
+            *((byte*)this.memoryHandle.Pointer + (address.Ptr % this.memory.Length)) = value;
         }
     }
 }
