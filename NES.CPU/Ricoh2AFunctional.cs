@@ -48,14 +48,6 @@ namespace NES.CPU
 
         private void Enqueue(Action<Ricoh2AFunctional> operation) => this.workQueue.Enqueue(operation);
 
-        private void Enqueue(IEnumerable<Action<Ricoh2AFunctional>> operations)
-        {
-            foreach (var op in operations)
-            {
-                this.workQueue.Enqueue(op);
-            }
-        }
-
         private static void ReadPCNoOp(Ricoh2AFunctional cpu)
         {
             cpu.Read(cpu.regs.PC);
@@ -112,21 +104,6 @@ namespace NES.CPU
             });
         }
 
-        [Obsolete]
-        public static IEnumerable<Action<Ricoh2AFunctional>> Operation(Action<Ricoh2AFunctional, byte> operation)
-        {
-            // Read-only operation
-            return new Action<Ricoh2AFunctional>[]
-            {
-                cpu =>
-                {
-                    cpu.operand = cpu.Read(cpu.address);
-                    operation(cpu, cpu.operand);
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
-                }
-            };
-        }
-
         public void QueueOperation(Func<Ricoh2AFunctional, byte> operation)
         {
             this.Enqueue(cpu =>
@@ -135,21 +112,6 @@ namespace NES.CPU
                 cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
             });
         }
-
-        [Obsolete]
-        public static IEnumerable<Action<Ricoh2AFunctional>> Operation(Func<Ricoh2AFunctional, byte> operation)
-        {
-            // Write-only operation
-            return new Action<Ricoh2AFunctional>[]
-            {
-                cpu =>
-                {
-                    cpu.Write(cpu.address,  operation(cpu));
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
-                }
-            };
-        }
-
         public void QueueOperation(Func<Ricoh2AFunctional, byte, byte> operation)
         {
             this.Enqueue(cpu =>
@@ -192,59 +154,6 @@ namespace NES.CPU
 
             Enqueue(ReadPCToAddress);
             Enqueue(Work);
-        }
-
-        [Obsolete]
-        public static IEnumerable<Action<Ricoh2AFunctional>> Operation(Func<Ricoh2AFunctional, byte, byte> operation)
-        {
-            // Read-Write operation
-            return new Action<Ricoh2AFunctional>[]
-            {
-                cpu =>
-                {
-                    cpu.operand = cpu.Read(cpu.address);
-                },
-                cpu=>
-                {
-                    cpu.Write(cpu.address, cpu.operand);
-                },
-                cpu =>
-                {
-                    cpu.Write(cpu.address, operation(cpu, cpu.operand));
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
-                }
-            };
-        }
-
-        [Obsolete]
-        public static void AbsoluteAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation) =>
-            AbsoluteAddressing(cpu, Operation(operation));
-        [Obsolete]
-        public static void AbsoluteAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
-            AbsoluteAddressing(cpu, Operation(operation));
-        [Obsolete]
-        public static void AbsoluteAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
-            AbsoluteAddressing(cpu, Operation(operation));
-
-        private static void AbsoluteAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional> operation)
-        {
-            void Work(Ricoh2AFunctional cpu)
-            {
-                ReadPCToAddressHigh(cpu);
-                cpu.regs.PC = cpu.address;
-                cpu.TraceInstruction(operation.Method.Name, cpu.address);
-            }
-
-            cpu.workQueue.Enqueue(ReadPCToAddress);
-            cpu.workQueue.Enqueue(Work);
-        }
-
-        [Obsolete]
-        private static void AbsoluteAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
-        {
-            cpu.Enqueue(ReadPCToAddress);
-            cpu.Enqueue(ReadPCToAddressHigh);
-            cpu.Enqueue(operations);
         }
 
         private void AbsoluteIndirectAddressing(Action<Ricoh2AFunctional> operation)
@@ -328,18 +237,6 @@ namespace NES.CPU
             });
         }
 
-        [Obsolete]
-        private static void ImmediateAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation)
-        {
-            cpu.Enqueue(c =>
-            {
-                c.operand = c.Read(c.regs.PC);
-                c.regs.PC++;
-                operation(c, c.operand);
-                c.TraceInstruction(operation.Method.Name, c.operand);
-            });
-        }
-
         private void ImpliedAddressing(Action<Ricoh2AFunctional> operation)
         {
             Enqueue(c =>
@@ -372,34 +269,6 @@ namespace NES.CPU
                 c.address.High = c.Read(c.pointer);
             });
             queueOperation();
-        }
-
-        [Obsolete]
-        public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation) =>
-            IndexedIndirectAddressing(cpu, Operation(operation));
-        [Obsolete]
-        public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
-            IndexedIndirectAddressing(cpu, Operation(operation));
-        [Obsolete]
-        public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
-            IndexedIndirectAddressing(cpu, Operation(operation));
-
-        [Obsolete]
-        public static void IndexedIndirectAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
-        {
-            cpu.Enqueue(c => c.pointer.Ptr = c.Read(c.regs.PC++));
-            cpu.Enqueue(c =>
-            {
-                c.Read(c.pointer);
-                c.pointer.Low += c.regs.X;
-            });
-            cpu.Enqueue(c => c.address.Ptr = c.Read(c.pointer));
-            cpu.Enqueue(c =>
-            {
-                c.pointer.Low++;
-                c.address.High = c.Read(c.pointer);
-            });
-            cpu.Enqueue(operations);
         }
 
         public void IndirectIndexedAddressing(Action<Ricoh2AFunctional, byte> operation)
@@ -501,49 +370,6 @@ namespace NES.CPU
             Enqueue(Conditional);
         }
 
-        [Obsolete]
-        private static void RelativeAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, bool> operation)
-        {
-            void Conditional(Ricoh2AFunctional cpu)
-            {
-                ReadOperand(cpu);
-                cpu.address.Ptr = (ushort)(cpu.regs.PC.Ptr + (sbyte)cpu.operand);
-
-                if (operation(cpu))
-                {
-                    cpu.Enqueue(Jump);
-                }
-                else
-                {
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address);
-                }
-            }
-
-            void Jump(Ricoh2AFunctional cpu)
-            {
-                ReadPCNoOp(cpu);
-                cpu.regs.PC.Low = cpu.address.Low;
-
-                if (cpu.regs.PC.High != cpu.address.High)
-                {
-                    cpu.Enqueue(FixHigh);
-                }
-                else
-                {
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address);
-                }
-            }
-
-            void FixHigh(Ricoh2AFunctional cpu)
-            {
-                cpu.Read(cpu.regs.PC);
-                cpu.regs.PC.High = cpu.address.High;
-                cpu.TraceInstruction(operation.Method.Name, cpu.address);
-            }
-
-            cpu.Enqueue(Conditional);
-        }
-
         private void ZeroPageAddressing(Action<Ricoh2AFunctional, byte> operation) =>
             ZeroPageAddressing(() => QueueOperation(operation));
         private void ZeroPageAddressing(Func<Ricoh2AFunctional, byte> operation) =>
@@ -555,23 +381,6 @@ namespace NES.CPU
         {
             Enqueue(ReadPCToAddress);
             queueOperation();
-        }
-
-        [Obsolete]
-        private static void ZeroPageAddressing(Ricoh2AFunctional cpu, Action<Ricoh2AFunctional, byte> operation) =>
-            ZeroPageAddressing(cpu, Operation(operation));
-        [Obsolete]
-        private static void ZeroPageAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte> operation) =>
-            ZeroPageAddressing(cpu, Operation(operation));
-        [Obsolete]
-        private static void ZeroPageAddressing(Ricoh2AFunctional cpu, Func<Ricoh2AFunctional, byte, byte> operation) =>
-            ZeroPageAddressing(cpu, Operation(operation));
-
-        [Obsolete]
-        private static void ZeroPageAddressing(Ricoh2AFunctional cpu, IEnumerable<Action<Ricoh2AFunctional>> operations)
-        {
-            cpu.Enqueue(ReadPCToAddress);
-            cpu.Enqueue(operations);
         }
 
         private void ZeroPageIndexedAddressing(Action<Ricoh2AFunctional, byte> operation, byte index) =>
