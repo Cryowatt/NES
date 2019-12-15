@@ -110,8 +110,8 @@ namespace NES
 
         private static void RunBasic()
         {
+            //Console.BufferWidth
             RomImage romFile;
-            Console.WriteLine(Environment.CurrentDirectory);
             var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
             using (var reader = new BinaryReader(stream))
             {
@@ -119,14 +119,17 @@ namespace NES
             }
 
             var mapper = new Mapper0(romFile);
-            var bus = new NesBus(mapper);
-            var cpu = new Ricoh2AFunctional(bus);
-            cpu.Reset();
+            var platform = new Platform(mapper);
+            platform.Reset();
+            platform.Run();
+            //var bus = new NesBus(mapper);
+            //var cpu = new Ricoh2AFunctional(bus);
+            //cpu.Reset();
 
-            while (true)
-            {
-                var cycle = cpu.DoCycle();
-            }
+            //while (true)
+            //{
+            //    var cycle = platform.DoCycle();
+            //}
         }
 
         private static RomImage LoadRom()

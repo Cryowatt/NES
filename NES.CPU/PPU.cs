@@ -7,6 +7,7 @@ namespace NES.CPU
 {
     public class PPU : IBusDevice
     {
+        private int cycle = 0;
         private PPURegisters registers;
 
         public PPU()
@@ -34,7 +35,65 @@ namespace NES.CPU
 
         public void DoCycle()
         {
+            if (cycle == 0)
+            {
+                Console.WriteLine("PPU IDLE");
+            }
+            else if (1 <= cycle && cycle <= 256)
+            {
+                switch (cycle % 8)
+                {
+                    case 1:
+                        Console.WriteLine("PPU NT 1");
+                        break;
+                    case 2:
+                        Console.WriteLine("PPU NT 2");
+                        break;
+                    case 3:
+                        Console.WriteLine("PPU AT 1");
+                        break;
+                    case 4:
+                        Console.WriteLine("PPU AT 2");
+                        break;
+                    case 5:
+                        Console.WriteLine("PPU PTL 1");
+                        break;
+                    case 6:
+                        Console.WriteLine("PPU PTL 1");
+                        break;
+                    case 7:
+                        Console.WriteLine("PPU PTH 1");
+                        break;
+                    case 0:
+                        Console.WriteLine("PPU PTH 2");
+                        break;
+                }
+            }
+            else if (257 <= cycle && cycle <= 320)
+            {
+                //Garbage nametable byte
+                //Garbage nametable byte
+                //Pattern table tile low
+                //Pattern table tile high (+8 bytes from pattern table tile low)
+            }
+            else if (321 <= cycle && cycle <= 336)
+            {
+                //Nametable byte
+                //Attribute table byte
+                //Pattern table tile low
+                //Pattern table tile high (+8 bytes from pattern table tile low)
+            }
+            else
+            {
+                //Nametable byte
+                //Nametable byte
+            }
 
+            cycle++;
+            if (cycle > 340)
+            {
+                cycle = 0;
+            }
         }
 
         public unsafe byte Read(Address address)
