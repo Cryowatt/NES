@@ -46,34 +46,87 @@ namespace NES
 
         static void Main(string[] args)
         {
-            if (args.Length > 0)
+            RunBasic();
+            //using (NativeWindow nativeWindow = NativeWindow.Create())
+            //{
+            //    nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
+            //    nativeWindow.Show();
+            //    var context = DeviceContext.Create(nativeWindow.Display, nativeWindow.Handle);
+            //    Gl.GenBuffers()
+            //    Gl.ClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+            //    Gl.Clear(ClearBufferMask.ColorBufferBit);
+            //    // Model-view matrix selector
+            //    Gl.MatrixMode(MatrixMode.Modelview);
+            //    // Load (reset) to identity
+            //    Gl.LoadIdentity();
+            //    // Multiply with rotation matrix (around Z axis)
+            //    //Gl.Rotate(_Angle, 0.0f, 0.0f, 1.0f);
+
+            //    // Draw triangle using immediate mode (8 draw call)
+
+            //    // Start drawing triangles
+            //    Gl.Begin(PrimitiveType.Triangles);
+
+            //    // Feed triangle data: color and position
+            //    // Note: vertex attributes (color, texture coordinates, ...) are specified before position information
+            //    // Note: vertex data is passed using method calls (performance killer!)
+            //    Gl.Color3(1.0f, 0.0f, 0.0f); Gl.Vertex2(0.0f, 0.0f);
+            //    Gl.Color3(0.0f, 1.0f, 0.0f); Gl.Vertex2(0.5f, 1.0f);
+            //    Gl.Color3(0.0f, 0.0f, 1.0f); Gl.Vertex2(1.0f, 0.0f);
+            //    // Triangles ends
+            //    Gl.End();
+            //    nativeWindow.Run();
+            //}
+
+            //if (args.Length > 0)
+            //{
+            //    skip = int.Parse(args[0]);
+            //}
+            //var runCycles = 26559;
+            //RomImage romFile = LoadRom();
+            //var mapper = new Mapper0(romFile);
+
+            //// ========= NOP shit ============
+            ////var mapper = new TestMapper();
+            ////var runCycles = (int)cpuClock;
+
+            ////BothCpu(romFile, runCycles);
+            //Funccpu(mapper, runCycles);
+            ////Statecpu(mapper, runCycles);
+            //TotalFuncTime = TimeSpan.Zero;
+            //TotalStateTime = TimeSpan.Zero;
+
+            //for (int i = 0; i < 20; i++)
+            //{
+            //    //Console.WriteLine("State Machine CPU");
+            //    //Statecpu(mapper, runCycles);
+            //    Console.WriteLine("Functional CPU");
+            //    Funccpu(mapper, runCycles);
+            //}
+
+            //Console.WriteLine("Total Func: " + TotalFuncTime);
+            //Console.WriteLine("Total Stat: " + TotalStateTime);
+        }
+
+        private static void RunBasic()
+        {
+            RomImage romFile;
+            Console.WriteLine(Environment.CurrentDirectory);
+            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
+            using (var reader = new BinaryReader(stream))
             {
-                skip = int.Parse(args[0]);
+                romFile = RomImage.From(reader);
             }
-            var runCycles = 26559;
-            RomImage romFile = LoadRom();
+
             var mapper = new Mapper0(romFile);
+            var bus = new NesBus(mapper);
+            var cpu = new Ricoh2AFunctional(bus);
+            cpu.Reset();
 
-            // ========= NOP shit ============
-            //var mapper = new TestMapper();
-            //var runCycles = (int)cpuClock;
-
-            //BothCpu(romFile, runCycles);
-            Funccpu(mapper, runCycles);
-            //Statecpu(mapper, runCycles);
-            TotalFuncTime = TimeSpan.Zero;
-            TotalStateTime = TimeSpan.Zero;
-
-            for (int i = 0; i < 20; i++)
+            while (true)
             {
-                //Console.WriteLine("State Machine CPU");
-                //Statecpu(mapper, runCycles);
-                Console.WriteLine("Functional CPU");
-                Funccpu(mapper, runCycles);
+                var cycle = cpu.DoCycle();
             }
-
-            Console.WriteLine("Total Func: " + TotalFuncTime);
-            Console.WriteLine("Total Stat: " + TotalStateTime);
         }
 
         private static RomImage LoadRom()

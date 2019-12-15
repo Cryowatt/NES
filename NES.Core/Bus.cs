@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NES.CPU
+namespace NES
 {
     public class Bus : IBus
     {
         // I'm making the assumption that each device uses the first three bits of the address as a chip-select. This means there are only 8 device slots in total (0b000, 0b111).
-        protected readonly IBusDevice[] devices;
+        private readonly IBusDevice[] devices;
 
         public Bus(IBusDevice device0, IBusDevice device1, IBusDevice device2, IBusDevice device3, IBusDevice device4, IBusDevice device5, IBusDevice device6, IBusDevice device7)
         {

@@ -9,6 +9,9 @@ namespace NES.CPU
     {
         CpuRegisters Registers { get; }
         long CycleCount { get; }
+
+        void Reset();
+        Trace DoCycle();
     }
 
     public partial class Ricoh2A : IRicoh2A
@@ -33,6 +36,10 @@ namespace NES.CPU
             this.regs = registers;
             this.initAddress = initAddress ?? new Address(0xFFFC);
         }
+
+        public void Reset() { }
+
+        public Trace DoCycle() => null;
 
         public CpuRegisters Registers => (CpuRegisters)this.regs.Clone();
 
