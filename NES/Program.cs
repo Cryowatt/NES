@@ -1,9 +1,12 @@
 ﻿using NES.CPU;
 using NES.CPU.Mappers;
+using OpenGL;
+using OpenGL.CoreUI;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace NES
 {
@@ -46,7 +49,15 @@ namespace NES
 
         static void Main(string[] args)
         {
-            RunBasic();
+            using (NativeWindow nativeWindow = NativeWindow.Create())
+            {
+                nativeWindow.Render += NativeWindow_Render;
+                nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
+                nativeWindow.Show();
+                nativeWindow.Run();
+            }
+
+            // RunBasic();
             //using (NativeWindow nativeWindow = NativeWindow.Create())
             //{
             //    nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
@@ -106,6 +117,27 @@ namespace NES
 
             //Console.WriteLine("Total Func: " + TotalFuncTime);
             //Console.WriteLine("Total Stat: " + TotalStateTime);
+        }
+
+        static long frame = 0;
+        static Random random = new Random();
+
+        private unsafe static void NativeWindow_Render(object sender, NativeWindowEventArgs e)
+        {
+            Gl.ClearColor((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble(), 1.0f);
+            Gl.Clear(ClearBufferMask.ColorBufferBit);
+            float[] pixels = Enumerable.Range(0, 256 * 256 * 3).Select(o => (float)o).ToArray();
+            fixed (float* ptr = pixels)
+            {
+                Gl.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgb16f, 256, 256, 0, PixelFormat.Rgb, PixelType.Float, (IntPtr)ptr);
+            }
+            float[] vertices = new[]{
+            //  Position      Color             Texcoords
+                -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
+                 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
+                 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
+                -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
+            };
         }
 
         private static void RunBasic()
