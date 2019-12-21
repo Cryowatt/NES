@@ -10,6 +10,10 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="OpenGL.Net" Version="0.8.4" />
     <PackageReference Include="OpenGL.Net.CoreUI" Version="0.8.4" />

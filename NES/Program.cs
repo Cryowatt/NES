@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace NES
 {
@@ -51,6 +52,8 @@ namespace NES
         {
             using (NativeWindow nativeWindow = NativeWindow.Create())
             {
+                nativeWindow.ContextCreated += NativeWindow_ContextCreated;
+                nativeWindow.ContextDestroying += NativeWindow_ContextDestroying;
                 nativeWindow.Render += NativeWindow_Render;
                 nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
                 nativeWindow.Show();
@@ -119,25 +122,155 @@ namespace NES
             //Console.WriteLine("Total Stat: " + TotalStateTime);
         }
 
+        private static void NativeWindow_ContextDestroying(object sender, NativeWindowEventArgs e)
+        {
+            Gl.DeleteVertexArrays(vao);
+            Gl.DeleteBuffers(vbo);
+            Gl.DeleteBuffers(ebo);
+        }
+
+        static uint vertexShader;
+        static uint fragmentShader;
+        static uint shaderProgram;
+        static uint vbo;
+        static uint vao;
+        static uint ebo;
+
+        private unsafe static void NativeWindow_ContextCreated(object sender, NativeWindowEventArgs e)
+        {
+            vertexShader = CreateVertexShader();
+            fragmentShader = CreateFragmentShader(vertexShader);
+            shaderProgram = CreateShaderProgram(vertexShader, fragmentShader);
+            Gl.DeleteShader(vertexShader);
+            Gl.DeleteShader(fragmentShader);
+
+            var vertices = new float[] {
+                -1.0f, -2.0f, 0.0f,  // bottom left
+                -1.0f,  1.0f, 0.0f,  // top left 
+                 2.0f,  1.0f, 0.0f,  // top right
+                 //0.5f, -0.5f, 0.0f,  // bottom right
+            };
+
+            var indices = new uint[] {  // note that we start from 0!
+                0, 1, 2,  // first Triangle
+                //1, 2, 3   // second Triangle
+            };
+
+            uint[] ids = new uint[1];
+            Gl.GenVertexArrays(ids);
+            vao = ids[0];
+            Gl.GenBuffers(ids);
+            vbo = ids[0];
+            Gl.GenBuffers(ids);
+            ebo = ids[0];
+
+            // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+            Gl.BindVertexArray(vao);
+
+            Gl.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+            Gl.BufferData(BufferTarget.ArrayBuffer, (uint)(sizeof(float) * vertices.Length), vertices, BufferUsage.StaticDraw);
+
+            Gl.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
+            Gl.BufferData(BufferTarget.ElementArrayBuffer, (uint)(sizeof(uint) * indices.Length), indices, BufferUsage.StaticDraw);
+
+            Gl.VertexAttribPointer(0, 3, VertexAttribType.Float, false, 3 * sizeof(float), IntPtr.Zero);
+            Gl.EnableVertexAttribArray(0);
+
+            // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+            Gl.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+            // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+            //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+            // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+            // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+            Gl.BindVertexArray(0);
+        }
+
         static long frame = 0;
         static Random random = new Random();
 
         private unsafe static void NativeWindow_Render(object sender, NativeWindowEventArgs e)
         {
-            Gl.ClearColor((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble(), 1.0f);
+            Gl.ClearColor(0.5f, 0.0f, 0.5f, 1.0f);
             Gl.Clear(ClearBufferMask.ColorBufferBit);
-            float[] pixels = Enumerable.Range(0, 256 * 256 * 3).Select(o => (float)o).ToArray();
-            fixed (float* ptr = pixels)
+
+            Gl.UseProgram(shaderProgram);
+            Gl.BindVertexArray(vao);
+            Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, IntPtr.Zero);
+
+            //Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+            //e.DeviceContext.SwapBuffers();
+        }
+
+        private static unsafe uint CreateShaderProgram(uint vertexShader, uint fragmentShader)
+        {
+            var shaderProgram = Gl.CreateProgram();
+
+            Gl.AttachShader(shaderProgram, vertexShader);
+            Gl.AttachShader(shaderProgram, fragmentShader);
+            Gl.LinkProgram(shaderProgram);
+
+            Gl.GetProgram(shaderProgram, ProgramProperty.LinkStatus, out int success);
+            if (success == 0)
             {
-                Gl.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgb16f, 256, 256, 0, PixelFormat.Rgb, PixelType.Float, (IntPtr)ptr);
+                var message = new StringBuilder();
+                Gl.GetProgramInfoLog(shaderProgram, 512, out int length, message);
+                throw new Exception(message.ToString());
             }
-            float[] vertices = new[]{
-            //  Position      Color             Texcoords
-                -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
-                 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
-                 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
-                -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
-            };
+
+            return shaderProgram;
+        }
+
+        private static unsafe uint CreateFragmentShader(uint vertexShader)
+        {
+            var fragmentShaderSource = @"#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+}".Split("\n");
+
+            var fragmentShader = Gl.CreateShader(ShaderType.FragmentShader);
+            Gl.ShaderSource(fragmentShader, fragmentShaderSource, fragmentShaderSource.Select(o => o.Length).ToArray());
+            Gl.CompileShader(fragmentShader);
+            Gl.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int success);
+
+            if (success == 0)
+            {
+                var message = new StringBuilder();
+                Gl.GetShaderInfoLog(fragmentShader, 512, out int length, message);
+                throw new Exception(message.ToString());
+            }
+
+            return fragmentShader;
+        }
+
+        private static unsafe uint CreateVertexShader()
+        {
+            var vertexShaderSource = @"#version 330 core
+layout (location = 0) in vec3 aPos;
+
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+}".Split("\n");
+
+            var vertexShader = Gl.CreateShader(ShaderType.VertexShader);
+
+            Gl.ShaderSource(vertexShader, vertexShaderSource, vertexShaderSource.Select(o => o.Length).ToArray());
+            Gl.CompileShader(vertexShader);
+            Gl.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int success);
+
+            if (success == 0)
+            {
+                var message = new StringBuilder();
+                Gl.GetShaderInfoLog(vertexShader, 512, out int length, message);
+                throw new Exception(message.ToString());
+            }
+
+            return vertexShader;
         }
 
         private static void RunBasic()
