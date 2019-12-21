@@ -132,6 +132,7 @@ namespace NES
         static uint vertexShader;
         static uint fragmentShader;
         static uint shaderProgram;
+        static uint texture;
         static uint vbo;
         static uint vao;
         static uint ebo;
@@ -145,15 +146,16 @@ namespace NES
             Gl.DeleteShader(fragmentShader);
 
             var vertices = new float[] {
-                -1.0f, -2.0f, 0.0f,  // bottom left
-                -1.0f,  1.0f, 0.0f,  // top left 
-                 2.0f,  1.0f, 0.0f,  // top right
-                 //0.5f, -0.5f, 0.0f,  // bottom right
+                // positions          // colors           // texture coords
+                 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+                 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+                -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+                -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
             };
 
-            var indices = new uint[] {  // note that we start from 0!
-                0, 1, 2,  // first Triangle
-                //1, 2, 3   // second Triangle
+            var indices = new uint[] {
+                0, 1, 3, // first triangle
+                1, 2, 3  // second triangle
             };
 
             uint[] ids = new uint[1];
@@ -173,27 +175,99 @@ namespace NES
             Gl.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
             Gl.BufferData(BufferTarget.ElementArrayBuffer, (uint)(sizeof(uint) * indices.Length), indices, BufferUsage.StaticDraw);
 
-            Gl.VertexAttribPointer(0, 3, VertexAttribType.Float, false, 3 * sizeof(float), IntPtr.Zero);
+            Gl.VertexAttribPointer(0, 3, VertexAttribType.Float, false, 8 * sizeof(float), IntPtr.Zero);
             Gl.EnableVertexAttribArray(0);
 
-            // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-            Gl.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            // position attribute
+            Gl.VertexAttribPointer(0, 3, VertexAttribType.Float, false, 8 * sizeof(float), (IntPtr)0);
+            Gl.EnableVertexAttribArray(0);
+            // color attribute
+            Gl.VertexAttribPointer(1, 3, VertexAttribType.Float, false, 8 * sizeof(float), (IntPtr)(3 * sizeof(float)));
+            Gl.EnableVertexAttribArray(1);
+            // texture coord attribute
+            Gl.VertexAttribPointer(2, 2, VertexAttribType.Float, false, 8 * sizeof(float), (IntPtr)(6 * sizeof(float)));
+            Gl.EnableVertexAttribArray(2);
 
-            // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-            //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            // load and create a texture 
+            // -------------------------
+            // texture 1
+            // ---------
+            Gl.GenTextures(ids);
+            texture = ids[0];
+            Gl.BindTexture(TextureTarget.Texture2d, texture);
+            // set the texture wrapping parameters
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, Gl.REPEAT);   // set texture wrapping to GL_REPEAT (default wrapping method)
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, Gl.REPEAT);
+            // set texture filtering parameters
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, Gl.REPEAT);
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, Gl.REPEAT);
 
-            // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-            // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-            Gl.BindVertexArray(0);
+            // load image, create texture and generate mipmaps
+            //int width, height, nrChannels;
+            //stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+            //                                        // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
+            //unsigned char* data = stbi_load(FileSystem::getPath("resources/textures/container.jpg").c_str(), &width, &height, &nrChannels, 0);
+            //if (data)
+            //{
+            //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            //    glGenerateMipmap(GL_TEXTURE_2D);
+            //}
+            //else
+            //{
+            //    std::cout << "Failed to load texture" << std::endl;
+            //}
+            UpdateFrameBuffer();
+            //var data = Enumerable.Range(0, 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
+            Gl.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, 256, 256, 0, PixelFormat.Bgra, PixelType.UnsignedByte, frameBuffer);
+            Gl.GenerateMipmap(TextureTarget.Texture2d);
+
+            Gl.UseProgram(shaderProgram);
+            Gl.Uniform1i(Gl.GetUniformLocation(shaderProgram, "texture"), 1, 0);
+
+
+
+            //// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+            //Gl.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+            //// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+            ////glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+            //// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+            //// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+            //Gl.BindVertexArray(0);
+        }
+
+        private unsafe static void UpdateFrameBuffer()
+        {
+            fixed (byte* pFrameBuffer = frameBuffer)
+            {
+                int offset = (int)frame; //random.Next();
+                int* ptr = (int*)pFrameBuffer;
+                for (int i = 0; i < 256 * 256; i++)
+                {
+                    *(ptr++) = ((i + offset) << 8) | 0xff;
+                }
+            }
         }
 
         static long frame = 0;
         static Random random = new Random();
+        static Stopwatch frameTimer = Stopwatch.StartNew();
+        static byte[] frameBuffer = new byte[256 * 256 * 4];
 
         private unsafe static void NativeWindow_Render(object sender, NativeWindowEventArgs e)
         {
             Gl.ClearColor(0.5f, 0.0f, 0.5f, 1.0f);
             Gl.Clear(ClearBufferMask.ColorBufferBit);
+
+            UpdateFrameBuffer();
+            //var data = Enumerable.Range(random.Next(), 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
+            Gl.TexSubImage2D(TextureTarget.Texture2d, 0, 0, 0, 256, 256, PixelFormat.Bgra, PixelType.UnsignedByte, frameBuffer);
+            Gl.GenerateMipmap(TextureTarget.Texture2d);
+
+            // bind textures on corresponding texture units
+            Gl.ActiveTexture(TextureUnit.Texture0);
+            Gl.BindTexture(TextureTarget.Texture2d, texture);
 
             Gl.UseProgram(shaderProgram);
             Gl.BindVertexArray(vao);
@@ -201,6 +275,13 @@ namespace NES
 
             //Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
             //e.DeviceContext.SwapBuffers();
+            frame++;
+            if (frameTimer.ElapsedMilliseconds > 1000)
+            {
+                Console.WriteLine($"{frame}fps");
+                frame = 0;
+                frameTimer.Restart();
+            }
         }
 
         private static unsafe uint CreateShaderProgram(uint vertexShader, uint fragmentShader)
@@ -227,9 +308,17 @@ namespace NES
             var fragmentShaderSource = @"#version 330 core
 out vec4 FragColor;
 
+in vec3 ourColor;
+in vec2 TexCoord;
+
+// texture samplers
+uniform sampler2D texture;
+
 void main()
 {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+	// linearly interpolate between both textures (80% container, 20% awesomeface)
+	//FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);
+    FragColor = texture(texture, TexCoord);
 }".Split("\n");
 
             var fragmentShader = Gl.CreateShader(ShaderType.FragmentShader);
@@ -251,10 +340,17 @@ void main()
         {
             var vertexShaderSource = @"#version 330 core
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec2 aTexCoord;
+
+out vec3 ourColor;
+out vec2 TexCoord;
 
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = vec4(aPos, 1.0);
+	ourColor = aColor;
+	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 }".Split("\n");
 
             var vertexShader = Gl.CreateShader(ShaderType.VertexShader);
