@@ -11,6 +11,8 @@ namespace NES.CPU
         private readonly IRicoh2A cpu;
         private readonly PPU ppu;
 
+        public Memory<int> FrameBuffer => ppu.FrameBuffer;
+
         public Platform(IMapper mapper)
         {
             this.bus = new NesBus(mapper);
@@ -25,16 +27,18 @@ namespace NES.CPU
 
         public void Run()
         {
-            for (long ticks = 0; ; ticks++)
+            for (long ticks = 0; ; ticks += 12)
             {
-                if (ticks % 12 == 0)
-                {
-                    this.cpu.DoCycle();
-                    this.ppu.DoCycle();
-                    this.ppu.DoCycle();
-                    this.ppu.DoCycle();
-                }
+                DoCycle();
             }
+        }
+
+        public void DoCycle()
+        {
+            this.cpu.DoCycle();
+            this.ppu.DoCycle();
+            this.ppu.DoCycle();
+            this.ppu.DoCycle();
         }
     }
 }

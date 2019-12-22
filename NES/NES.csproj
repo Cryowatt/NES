@@ -15,6 +15,10 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <None Remove="Super Mario Bros %28JU%29 %28PRG 1%29.nes" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <PackageReference Include="OpenGL.Net" Version="0.8.4" />
     <PackageReference Include="OpenGL.Net.CoreUI" Version="0.8.4" />
   </ItemGroup>

@@ -64,7 +64,7 @@ namespace NES.CPU
         //           pre-render line.
     }
 
-    public class PPU : IBusDevice
+    public unsafe class PPU : IBusDevice
     {
         private int cycle = 0;
         private int scanline = 0;
@@ -72,9 +72,15 @@ namespace NES.CPU
         private Address address;
         private Memory<byte> memory;
         private MemoryHandle memoryHandle;
+        private MemoryHandle frameBufferHandle;
+        private byte* pNametable;
+        private int* pFrameBuffer;
+
+        public Memory<int> FrameBuffer { get; }
 
         public PPU()
         {
+            FrameBuffer = new Memory<int>(new int[256 * 240]);
             //PPUCTRL ($2000)	0000 0000	0000 0000
             registers.PPUCTRL = 0;
             //PPUMASK ($2001)	0000 0000	0000 0000
@@ -97,6 +103,9 @@ namespace NES.CPU
 
             this.memory = new Memory<byte>(new byte[16 * 1024]);
             this.memoryHandle = memory.Pin();
+            this.pNametable = (byte*)memoryHandle.Pointer + this.registers.PPUSCROLL;
+            this.frameBufferHandle = FrameBuffer.Pin();
+            this.pFrameBuffer = (int*)frameBufferHandle.Pointer;
         }
 
         public void DoCycle()
@@ -119,14 +128,24 @@ namespace NES.CPU
 
                 if (scanline > 260)
                 {
+                    this.pNametable = (byte*)memoryHandle.Pointer + this.registers.PPUSCROLL;
+                    this.pFrameBuffer = (int*)frameBufferHandle.Pointer;
                     scanline = 0;
                 }
             }
-
         }
+
+        private byte attributeTable = 0;
+        private byte nameTable = 0;
+        private ushort patternTableLow = 0;
+        private ushort patternTableHigh = 0;
 
         private void Render()
         {
+            //this.pn
+            //this.pFrameBuffer*
+            *this.pFrameBuffer = (int)(0xFFFFFFFF * (patternTableLow & 0x1)) | 0xFF;
+
             if (cycle == 0)
             {
                 //Console.WriteLine("PPU IDLE");
@@ -139,6 +158,8 @@ namespace NES.CPU
                         //Console.WriteLine("PPU NT 1");
                         break;
                     case 2:
+                        nameTable = *pNametable;
+                        pNametable++;
                         //Console.WriteLine("PPU NT 2");
                         break;
                     case 3:
@@ -151,12 +172,14 @@ namespace NES.CPU
                         //Console.WriteLine("PPU PTL 1");
                         break;
                     case 6:
-                        //Console.WriteLine("PPU PTL 1");
+                        patternTableLow = *((byte*)memoryHandle.Pointer + nameTable + (scanline % 8));
+                        //Console.WriteLine("PPU PTL 2");
                         break;
                     case 7:
                         //Console.WriteLine("PPU PTH 1");
                         break;
                     case 0:
+                        patternTableHigh = *((byte*)memoryHandle.Pointer + nameTable + (scanline % 8) + 8);
                         //Console.WriteLine("PPU PTH 2");
                         break;
                 }
@@ -199,7 +222,6 @@ namespace NES.CPU
                     fixed (PPURegisters* ptr = &registers)
                     {
                         value = *((byte*)ptr + (address.Ptr % 8));
-                        Console.WriteLine($"PPU {address} => {value}");
                         return value;
                     }
             }
@@ -222,7 +244,6 @@ namespace NES.CPU
                 default:
                     fixed (PPURegisters* ptr = &registers)
                     {
-                        Console.WriteLine($"PPU {address} <= {value}");
                         *((byte*)ptr + offset) = value;
                     }
                     break;

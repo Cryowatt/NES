@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace NES
 {
@@ -17,6 +18,7 @@ namespace NES
         private const double cpuClock = masterClock / 12.0;
         private static int instructionCount = 1;
         private static int skip = 0;
+        private static Platform platform;
 
         public class TestMapper : IMapper
         {
@@ -50,47 +52,29 @@ namespace NES
 
         static void Main(string[] args)
         {
+            RomImage romFile;
+            var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Super Mario Bros (JU) (PRG 1).nes");
+            using (var reader = new BinaryReader(stream))
+            {
+                romFile = RomImage.From(reader);
+            }
+
+            var mapper = new Mapper0(romFile);
+            platform = new Platform(mapper);
+            platform.Reset();
+            Task.Factory.StartNew(platform.Run);
+
             using (NativeWindow nativeWindow = NativeWindow.Create())
             {
                 nativeWindow.ContextCreated += NativeWindow_ContextCreated;
                 nativeWindow.ContextDestroying += NativeWindow_ContextDestroying;
                 nativeWindow.Render += NativeWindow_Render;
-                nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
+                nativeWindow.Create(0, 0, 1024, 1024, NativeWindowStyle.Overlapped);
                 nativeWindow.Show();
                 nativeWindow.Run();
             }
 
             // RunBasic();
-            //using (NativeWindow nativeWindow = NativeWindow.Create())
-            //{
-            //    nativeWindow.Create(0, 0, 256, 256, NativeWindowStyle.Overlapped);
-            //    nativeWindow.Show();
-            //    var context = DeviceContext.Create(nativeWindow.Display, nativeWindow.Handle);
-            //    Gl.GenBuffers()
-            //    Gl.ClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-            //    Gl.Clear(ClearBufferMask.ColorBufferBit);
-            //    // Model-view matrix selector
-            //    Gl.MatrixMode(MatrixMode.Modelview);
-            //    // Load (reset) to identity
-            //    Gl.LoadIdentity();
-            //    // Multiply with rotation matrix (around Z axis)
-            //    //Gl.Rotate(_Angle, 0.0f, 0.0f, 1.0f);
-
-            //    // Draw triangle using immediate mode (8 draw call)
-
-            //    // Start drawing triangles
-            //    Gl.Begin(PrimitiveType.Triangles);
-
-            //    // Feed triangle data: color and position
-            //    // Note: vertex attributes (color, texture coordinates, ...) are specified before position information
-            //    // Note: vertex data is passed using method calls (performance killer!)
-            //    Gl.Color3(1.0f, 0.0f, 0.0f); Gl.Vertex2(0.0f, 0.0f);
-            //    Gl.Color3(0.0f, 1.0f, 0.0f); Gl.Vertex2(0.5f, 1.0f);
-            //    Gl.Color3(0.0f, 0.0f, 1.0f); Gl.Vertex2(1.0f, 0.0f);
-            //    // Triangles ends
-            //    Gl.End();
-            //    nativeWindow.Run();
-            //}
 
             //if (args.Length > 0)
             //{
@@ -147,15 +131,15 @@ namespace NES
 
             var vertices = new float[] {
                 // positions          // colors           // texture coords
-                 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-                 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-                -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-                -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+                -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, -1.0f, // bottom left
+                -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f, // top left 
+                 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   2.0f, 1.0f, // top right
+                 1.0f, -2.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
             };
 
             var indices = new uint[] {
-                0, 1, 3, // first triangle
-                1, 2, 3  // second triangle
+                0, 1, 2, // first triangle
+                //1, 2, 3  // second triangle
             };
 
             uint[] ids = new uint[1];
@@ -196,11 +180,11 @@ namespace NES
             texture = ids[0];
             Gl.BindTexture(TextureTarget.Texture2d, texture);
             // set the texture wrapping parameters
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, Gl.REPEAT);   // set texture wrapping to GL_REPEAT (default wrapping method)
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, Gl.REPEAT);
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, Gl.CLAMP_TO_BORDER);   // set texture wrapping to GL_REPEAT (default wrapping method)
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, Gl.CLAMP_TO_BORDER);
             // set texture filtering parameters
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, Gl.REPEAT);
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, Gl.REPEAT);
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, Gl.NEAREST);
+            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, Gl.NEAREST);
 
             // load image, create texture and generate mipmaps
             //int width, height, nrChannels;
@@ -216,15 +200,16 @@ namespace NES
             //{
             //    std::cout << "Failed to load texture" << std::endl;
             //}
-            UpdateFrameBuffer();
+            //UpdateFrameBuffer();
             //var data = Enumerable.Range(0, 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
-            Gl.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, 256, 256, 0, PixelFormat.Bgra, PixelType.UnsignedByte, frameBuffer);
-            Gl.GenerateMipmap(TextureTarget.Texture2d);
+            using (var bufferPin = platform.FrameBuffer.Pin())
+            {
+                Gl.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, 256, 240, 0, PixelFormat.Bgra, PixelType.UnsignedByte, (IntPtr)bufferPin.Pointer);
+            }
+            //Gl.GenerateMipmap(TextureTarget.Texture2d);
 
             Gl.UseProgram(shaderProgram);
             Gl.Uniform1i(Gl.GetUniformLocation(shaderProgram, "texture"), 1, 0);
-
-
 
             //// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
             //Gl.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -237,33 +222,41 @@ namespace NES
             //Gl.BindVertexArray(0);
         }
 
-        private unsafe static void UpdateFrameBuffer()
-        {
-            fixed (byte* pFrameBuffer = frameBuffer)
-            {
-                int offset = (int)frame; //random.Next();
-                int* ptr = (int*)pFrameBuffer;
-                for (int i = 0; i < 256 * 256; i++)
-                {
-                    *(ptr++) = ((i + offset) << 8) | 0xff;
-                }
-            }
-        }
+        //private unsafe static void UpdateFrameBuffer()
+        //{
+        //    using (var pin = platform.FrameBuffer.Pin())
+        //    {
+        //        fixed (byte* pFrameBuffer = frameBuffer)
+        //        {
+        //            int* pFrameBuffer = (int*)pin.Pointer;
+        //            //int offset = (int)frame; //random.Next();
+        //            int* ptr = (int*)pFrameBuffer;
+
+        //            for (int i = 0; i < 256 * 240; i++)
+        //            {
+        //                *(ptr++) = (((i & 0x1) * 0xff) << 8) | 0xff;
+        //            }
+        //        }
+        //    }
+        //}
 
         static long frame = 0;
         static Random random = new Random();
         static Stopwatch frameTimer = Stopwatch.StartNew();
-        static byte[] frameBuffer = new byte[256 * 256 * 4];
+        static byte[] frameBuffer = new byte[256 * 240 * 4];
 
         private unsafe static void NativeWindow_Render(object sender, NativeWindowEventArgs e)
         {
             Gl.ClearColor(0.5f, 0.0f, 0.5f, 1.0f);
             Gl.Clear(ClearBufferMask.ColorBufferBit);
 
-            UpdateFrameBuffer();
+            //UpdateFrameBuffer();
             //var data = Enumerable.Range(random.Next(), 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
-            Gl.TexSubImage2D(TextureTarget.Texture2d, 0, 0, 0, 256, 256, PixelFormat.Bgra, PixelType.UnsignedByte, frameBuffer);
-            Gl.GenerateMipmap(TextureTarget.Texture2d);
+            using (var bufferPin = platform.FrameBuffer.Pin())
+            {
+                Gl.TexSubImage2D(TextureTarget.Texture2d, 0, 0, 0, 256, 240, PixelFormat.Bgra, PixelType.UnsignedByte, (IntPtr)bufferPin.Pointer);
+            }
+            //Gl.GenerateMipmap(TextureTarget.Texture2d);
 
             // bind textures on corresponding texture units
             Gl.ActiveTexture(TextureUnit.Texture0);
@@ -319,6 +312,7 @@ void main()
 	// linearly interpolate between both textures (80% container, 20% awesomeface)
 	//FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);
     FragColor = texture(texture, TexCoord);
+    //FragColor = texelFetch(texture, ivec2(gl_FragCoord.xy), 0);
 }".Split("\n");
 
             var fragmentShader = Gl.CreateShader(ShaderType.FragmentShader);
@@ -349,7 +343,7 @@ out vec2 TexCoord;
 void main()
 {
     gl_Position = vec4(aPos, 1.0);
-	ourColor = aColor;
+	//ourColor = aColor;
 	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 }".Split("\n");
 
