@@ -14,7 +14,7 @@
         public NesBus(IMapper mapper)
             : base(
                 new Ram(new AddressRange(0x0000, 0x1fff), 0x0800),
-                new PPU(), //PPU
+                new PPU(mapper), //PPU
                 null, //APU
                 mapper,
                 mapper,

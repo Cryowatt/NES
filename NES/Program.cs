@@ -53,7 +53,8 @@ namespace NES
         static void Main(string[] args)
         {
             RomImage romFile;
-            var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Super Mario Bros (JU) (PRG 1).nes");
+            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
+            //var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Super Mario Bros (JU) (PRG 1).nes");
             using (var reader = new BinaryReader(stream))
             {
                 romFile = RomImage.From(reader);
@@ -74,7 +75,7 @@ namespace NES
                 nativeWindow.Run();
             }
 
-            // RunBasic();
+            //RunBasic();
 
             //if (args.Length > 0)
             //{
@@ -401,62 +402,6 @@ void main()
         }
 
         private static TimeSpan TotalFuncTime = TimeSpan.Zero;
-        private static TimeSpan TotalStateTime = TimeSpan.Zero;
-
-        private static void Statecpu(IMapper mapper, int runCycles)
-        {
-            instructionCount = 1;
-
-            var bus = new NesBus(mapper);
-            bus.Write(0x6001, 0xc0);
-            var cpu = new Ricoh2A(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
-            cpu.InstructionTrace += OnInstructionTrace;
-            var process = cpu.Process();
-            var timer = Stopwatch.StartNew();
-            foreach (var cycle in process.Take(runCycles))
-            {
-                if (instructionCount + 20 > skip)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpu.CycleCount, cycle);
-                    Console.ResetColor();
-                }
-            }
-            timer.Stop();
-            TotalStateTime += timer.Elapsed;
-            Console.WriteLine($"{runCycles} in {timer.Elapsed} actual. Relative speed: {runCycles / (timer.Elapsed.TotalSeconds * cpuClock):P}");
-        }
-
-        private static void BothCpu(RomImage rom, int runCycles)
-        {
-            instructionCount = 1;
-            var funcBus = new NesBus(new Mapper0(rom));
-            var stateBus = new NesBus(new Mapper0(rom));
-            funcBus.Write(0x6001, 0xc0);
-            stateBus.Write(0x6001, 0xc0);
-            var cpus = new Ricoh2A(stateBus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
-            var cpuf = new Ricoh2AFunctional(funcBus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
-            cpus.InstructionTrace += OnInstructionTrace;
-            cpuf.InstructionTrace += OnInstructionTracez;
-            var process = cpus.Process();
-            cpuf.Reset();
-            var timer = Stopwatch.StartNew();
-            foreach (var cycle in process.Take(runCycles))
-            {
-                var fcycle = cpuf.DoCycle();
-                if (instructionCount + 20 > skip)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpus.CycleCount, cycle);
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine("[{0}, {1}] {2}", instructionCount, cpuf.CycleCount, fcycle);
-                    Console.ResetColor();
-                }
-            }
-            timer.Stop();
-            TotalStateTime += timer.Elapsed;
-            Console.WriteLine($"{runCycles} in {timer.Elapsed} actual. Relative speed: {runCycles / (timer.Elapsed.TotalSeconds * cpuClock):P}");
-        }
 
         private static void Funccpu(IMapper mapper, int runCycles)
         {

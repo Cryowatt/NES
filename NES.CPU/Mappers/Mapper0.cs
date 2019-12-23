@@ -20,7 +20,7 @@ namespace NES.CPU.Mappers
 
         public AddressRange AddressRange { get; } = new AddressRange(0x6000, 0xffff);
 
-        public unsafe byte Read(Address address)
+        unsafe byte IBusDevice.Read(Address address)
         {
             //CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
             if (0x6000 <= address.Ptr && address.Ptr < 0x8000)
@@ -48,11 +48,39 @@ namespace NES.CPU.Mappers
             }
         }
 
-        public void Write(Address address, byte value)
+        void IBusDevice.Write(Address address, byte value)
         {
             if (0x6000 <= address && address < 0x8000)
             {
                 ram.Span[address - 0x06000] = value;
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
+        unsafe byte IPPUBusDevice.Read(Address address)
+        {
+            if (address.Ptr < 0x2000)
+            {
+                return *((byte*)this.characterRomData.Pointer + address.Ptr);
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
+        unsafe void IPPUBusDevice.Write(Address address, byte value)
+        {
+            if (address.Ptr < 0x2000)
+            {
+                *((byte*)this.characterRomData.Pointer + address.Ptr) = value;
+            }
+            else
+            {
+                throw new InvalidOperationException();
             }
         }
     }

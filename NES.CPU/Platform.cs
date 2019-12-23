@@ -13,11 +13,20 @@ namespace NES.CPU
 
         public Memory<int> FrameBuffer => ppu.FrameBuffer;
 
+        public event Action<Trace> OnCycle;
+
         public Platform(IMapper mapper)
         {
             this.bus = new NesBus(mapper);
             this.cpu = new Ricoh2AFunctional(this.bus);
-            this.ppu = new PPU();
+            this.ppu = new PPU(mapper);
+        }
+
+        public Platform(IBus bus, IRicoh2A cpu, PPU ppu)
+        {
+            this.bus = bus;
+            this.cpu = cpu;
+            this.ppu = ppu;
         }
 
         public void Reset()

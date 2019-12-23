@@ -35,46 +35,6 @@ namespace NES.CPU
         }
 
         public IBusDevice FindDevice(Address ptr) => this.devices[ptr.Ptr >> 13];
-        //{
-        //    return t ptr.Ptr >> 5
-        //    int scale = this.devices.Length >> 1;
-
-        //    for (int i = scale; scale > 0; scale >>= 1)
-        //    {
-        //        //int i = scale;
-        //        //scale >>= 1;
-        //        int blerg = this.devices[i].AddressRange.CompareTo(ptr);
-        //        switch (blerg)
-        //        {
-        //            case 0:
-        //                return this.devices[i];
-        //            case 1:
-        //                i += scale;
-        //                break;
-        //            case -1:
-        //                i -= scale;
-        //                break;
-        //        }
-        //        //if (blerg == 0)
-        //        //{
-        //        //    return this.devices[i];
-        //        //}
-        //        //scale >>= 1;
-        //        //i += blerg * scale;
-
-        //        //for (int i = scale; this.devices[i].AddressRange.CompareTo(ptr) != 0; i++)
-        //        //{
-        //        //    if (this.devices[i].AddressRange.Contains(ptr))
-        //        //    {
-        //        //        return this.devices[i];
-        //        //    }
-        //        //}
-
-        //        //return null;
-        //    }
-
-        //    throw new InvalidOperationException();
-        //}
 
         public byte Read(Address ptr)
         {

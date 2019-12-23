@@ -56,7 +56,7 @@ namespace NES.CPU.Tests
         [MemberData(nameof(ADCTestCases))]
         [Theory]
         public void ADC(MicrocodeTestInput input) =>
-            OpcodeTest((cpu, operand) => cpu.ADC(operand), input);
+            OpcodeTest((cpu, operand) => Ricoh2AFunctional.ADC(cpu, operand), input);
 
         public static IEnumerable<object[]> ADCTestCases => new List<MicrocodeTestInput>
         {
@@ -70,7 +70,7 @@ namespace NES.CPU.Tests
         [MemberData(nameof(ANDTestCases))]
         [Theory]
         public void AND(MicrocodeTestInput input) =>
-            OpcodeTest((cpu, operand) => cpu.AND(operand), input);
+            OpcodeTest((cpu, operand) => Ricoh2AFunctional.AND(cpu, operand), input);
 
         public static IEnumerable<object[]> ANDTestCases => new List<MicrocodeTestInput>
         {
@@ -86,7 +86,7 @@ namespace NES.CPU.Tests
         [MemberData(nameof(ASLTestCases))]
         [Theory]
         public void ASL(MicrocodeTestInput input) =>
-            OpcodeTest((cpu, operand) => cpu.ASL(operand), input);
+            OpcodeTest((cpu, operand) => Ricoh2AFunctional.ASL(cpu, operand), input);
 
         public static IEnumerable<object[]> ASLTestCases => new List<MicrocodeTestInput>
         {
@@ -96,20 +96,20 @@ namespace NES.CPU.Tests
             Operand(0x80).Expects(0x00, StatusFlags.Carry | StatusFlags.Zero),
         }.Select(o => new object[] { o });
 
-        private void OpcodeTest(Action<Ricoh2A, byte> opcode, MicrocodeTestInput input)
+        private void OpcodeTest(Action<Ricoh2AFunctional, byte> opcode, MicrocodeTestInput input)
         {
             var ram = new Ram(new AddressRange(0x0000, 0xffff), 0xffff);
             var rambus = new Bus(ram, ram, ram, ram, ram, ram, ram, ram);
-            var cpu = new Ricoh2A(rambus, input.InitialState);
+            var cpu = new Ricoh2AFunctional(rambus, input.InitialState);
             opcode(cpu, input.Operand);
             Assert.Equal(input.ExpectedState, cpu.Registers);
         }
 
-        private void OpcodeTest(Func<Ricoh2A, byte, byte> opcode, MicrocodeTestInput input)
+        private void OpcodeTest(Func<Ricoh2AFunctional, byte, byte> opcode, MicrocodeTestInput input)
         {
             var ram = new Ram(new AddressRange(0x0000, 0xffff), 0xffff);
             var rambus = new Bus(ram, ram, ram, ram, ram, ram, ram, ram);
-            var cpu = new Ricoh2A(rambus, input.InitialState);
+            var cpu = new Ricoh2AFunctional(rambus, input.InitialState);
             var result = opcode(cpu, input.Operand);
             Assert.Equal(input.ExpectedResult, result);
             Assert.Equal(input.ExpectedState, cpu.Registers);
