@@ -53,8 +53,8 @@ namespace NES
         static void Main(string[] args)
         {
             RomImage romFile;
-            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
-            //var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Super Mario Bros (JU) (PRG 1).nes");
+            //var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
+            var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Super Mario Bros (JU) (PRG 1).nes");
             using (var reader = new BinaryReader(stream))
             {
                 romFile = RomImage.From(reader);
@@ -132,15 +132,15 @@ namespace NES
 
             var vertices = new float[] {
                 // positions          // colors           // texture coords
-                -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, -1.0f, // bottom left
-                -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f, // top left 
-                 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   2.0f, 1.0f, // top right
-                 1.0f, -2.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+                -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f, // bottom left
+                -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 0.0f, // top left 
+                 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f, // top right
+                 1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f, // bottom right
             };
 
             var indices = new uint[] {
                 0, 1, 2, // first triangle
-                //1, 2, 3  // second triangle
+                2, 3, 0  // second triangle
             };
 
             uint[] ids = new uint[1];

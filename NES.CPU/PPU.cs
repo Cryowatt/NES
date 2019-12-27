@@ -77,7 +77,7 @@ namespace NES.CPU
         private Address address;
         private PPUBus ppuBus;
         private MemoryHandle frameBufferHandle;
-        private int* pFrameBuffer;
+        private uint* pFrameBuffer;
 
         public Memory<int> FrameBuffer { get; }
 
@@ -106,7 +106,7 @@ namespace NES.CPU
             //CHR RAM (external, in Game Pak)	unspecified	unchanged
 
             this.frameBufferHandle = FrameBuffer.Pin();
-            this.pFrameBuffer = (int*)frameBufferHandle.Pointer;
+            this.pFrameBuffer = (uint*)frameBufferHandle.Pointer;
         }
 
         public void DoCycle()
@@ -129,7 +129,7 @@ namespace NES.CPU
 
                 if (scanline > 260)
                 {
-                    this.pFrameBuffer = (int*)frameBufferHandle.Pointer;
+                    this.pFrameBuffer = (uint*)frameBufferHandle.Pointer;
                     scanline = 0;
                 }
             }
@@ -137,8 +137,10 @@ namespace NES.CPU
 
         private byte attributeTable = 0;
         private byte nameTable = 0;
-        private ushort patternTableLow = 0;
-        private ushort patternTableHigh = 0;
+        private byte bgTileLow = 0;
+        private byte bgTileHigh = 0;
+        private byte patternTableLow = 0;
+        private byte patternTableHigh = 0;
         private Address nametableAddress = 0x2000;
         private Address patterntableAddress = 0x0000;
         private byte courseX = 0;
@@ -156,12 +158,13 @@ namespace NES.CPU
             }
             else if (1 <= cycle && cycle <= 256)
             {
-                *this.pFrameBuffer = (int)(0x55555555 * ((patternTableLow & 0x1) | (patternTableHigh & 0x1) << 1)) | 0xFF;
-                this.pFrameBuffer++;
-                patternTableLow >>= 1;
                 switch (cycle % 8)
                 {
                     case 1:
+                        var address = (Address)(((cycle / 8) * 16) + (scanline % 8) + ((scanline / 8) * 256));
+                        bgTileLow = this.ppuBus.Read(address);
+                        address = (Address)(((cycle / 8) * 16) + (scanline % 8) + ((scanline / 8) * 256) + 8);
+                        bgTileHigh = this.ppuBus.Read(address);
                         //Console.WriteLine("PPU NT 1");
                         break;
                     case 2:
@@ -191,8 +194,15 @@ namespace NES.CPU
                         patterntableAddress.Ptr = (ushort)(((registers.PPUCTRL & PPUControl.BGBank2) == 0 ? 0x0000 : 0x1000) + (nameTable << 4) + (scanline % 8) + 8);
                         patternTableHigh = this.ppuBus.Read(patterntableAddress);
                         //Console.WriteLine("PPU PTH 2");
+                        //bgTileLow = patternTableLow;
+                        //bgTileHigh = patternTableHigh;
                         break;
                 }
+
+                *this.pFrameBuffer = (uint)(0x55555555 * ((bgTileLow & 0x1) | (bgTileHigh & 0x1) << 1)) | 0xFF000000;
+                this.pFrameBuffer++;
+                bgTileLow >>= 1;
+                bgTileHigh >>= 1;
             }
             else if (257 <= cycle && cycle <= 320)
             {
