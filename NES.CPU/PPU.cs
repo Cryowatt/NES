@@ -199,10 +199,10 @@ namespace NES.CPU
                         break;
                 }
 
-                *this.pFrameBuffer = (uint)(0x55555555 * ((bgTileLow & 0x1) | (bgTileHigh & 0x1) << 1)) | 0xFF000000;
+                *this.pFrameBuffer = (uint)(0x55555555 * ((bgTileLow & 0x80) >> 7 | (bgTileHigh & 0x80) >> 6)) | 0xFF000000;
                 this.pFrameBuffer++;
-                bgTileLow >>= 1;
-                bgTileHigh >>= 1;
+                bgTileLow <<= 1;
+                bgTileHigh <<= 1;
             }
             else if (257 <= cycle && cycle <= 320)
             {
