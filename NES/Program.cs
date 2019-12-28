@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NES
@@ -54,7 +55,7 @@ namespace NES
         {
             RomImage romFile;
             //var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
-            var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Super Mario Bros (JU) (PRG 1).nes");
+            var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Donkey Kong (JU).nes");
             using (var reader = new BinaryReader(stream))
             {
                 romFile = RomImage.From(reader);
@@ -243,6 +244,7 @@ namespace NES
 
         static long frame = 0;
         static Random random = new Random();
+        static Stopwatch frameRateTimer = Stopwatch.StartNew();
         static Stopwatch frameTimer = Stopwatch.StartNew();
         static byte[] frameBuffer = new byte[256 * 240 * 4];
 
@@ -270,12 +272,20 @@ namespace NES
             //Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
             //e.DeviceContext.SwapBuffers();
             frame++;
-            if (frameTimer.ElapsedMilliseconds > 1000)
+            if (frameRateTimer.ElapsedMilliseconds > 1000)
             {
                 Console.WriteLine($"{frame}fps");
                 frame = 0;
-                frameTimer.Restart();
+                frameRateTimer.Restart();
             }
+
+            var delay = 15 - (int)frameTimer.ElapsedMilliseconds;
+                //Console.WriteLine(delay);
+            if (delay > 0)
+            {
+                Thread.Sleep(delay);
+            }
+            frameTimer.Restart();
         }
 
         private static unsafe uint CreateShaderProgram(uint vertexShader, uint fragmentShader)
