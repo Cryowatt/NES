@@ -1,7 +1,5 @@
 ﻿using NES.CPU;
 using NES.CPU.Mappers;
-using OpenGL;
-using OpenGL.CoreUI;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -10,9 +8,13 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Veldrid;
+using Veldrid.Sdl2;
+using Veldrid.StartupUtilities;
 
 namespace NES
 {
+
     class Program
     {
         private const long masterClock = 236_250_000 / 11;
@@ -66,15 +68,13 @@ namespace NES
             platform.Reset();
             Task.Factory.StartNew(platform.Run);
 
-            using (NativeWindow nativeWindow = NativeWindow.Create())
-            {
-                nativeWindow.ContextCreated += NativeWindow_ContextCreated;
-                nativeWindow.ContextDestroying += NativeWindow_ContextDestroying;
-                nativeWindow.Render += NativeWindow_Render;
-                nativeWindow.Create(0, 0, 1024, 1024, NativeWindowStyle.Overlapped);
-                nativeWindow.Show();
-                nativeWindow.Run();
-            }
+            var window = new Window();
+            window.Nametable = platform.FrameBuffer.Pin();
+            //    using (var bufferPin = platform.FrameBuffer.Pin())
+            //    {
+            //        Gl.TexSubImage2D(TextureTarget.Texture2d, 0, 0, 0, 256, 240, PixelFormat.Bgra, PixelType.UnsignedByte, (IntPtr)bufferPin.Pointer);
+            //    }
+            window.Run();
 
             //RunBasic();
 
@@ -108,122 +108,6 @@ namespace NES
             //Console.WriteLine("Total Stat: " + TotalStateTime);
         }
 
-        private static void NativeWindow_ContextDestroying(object sender, NativeWindowEventArgs e)
-        {
-            Gl.DeleteVertexArrays(vao);
-            Gl.DeleteBuffers(vbo);
-            Gl.DeleteBuffers(ebo);
-        }
-
-        static uint vertexShader;
-        static uint fragmentShader;
-        static uint shaderProgram;
-        static uint texture;
-        static uint vbo;
-        static uint vao;
-        static uint ebo;
-
-        private unsafe static void NativeWindow_ContextCreated(object sender, NativeWindowEventArgs e)
-        {
-            vertexShader = CreateVertexShader();
-            fragmentShader = CreateFragmentShader(vertexShader);
-            shaderProgram = CreateShaderProgram(vertexShader, fragmentShader);
-            Gl.DeleteShader(vertexShader);
-            Gl.DeleteShader(fragmentShader);
-
-            var vertices = new float[] {
-                // positions          // colors           // texture coords
-                -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 1.0f, // bottom left
-                -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 0.0f, // top left 
-                 1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f, // top right
-                 1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 1.0f, // bottom right
-            };
-
-            var indices = new uint[] {
-                0, 1, 2, // first triangle
-                2, 3, 0  // second triangle
-            };
-
-            uint[] ids = new uint[1];
-            Gl.GenVertexArrays(ids);
-            vao = ids[0];
-            Gl.GenBuffers(ids);
-            vbo = ids[0];
-            Gl.GenBuffers(ids);
-            ebo = ids[0];
-
-            // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-            Gl.BindVertexArray(vao);
-
-            Gl.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-            Gl.BufferData(BufferTarget.ArrayBuffer, (uint)(sizeof(float) * vertices.Length), vertices, BufferUsage.StaticDraw);
-
-            Gl.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-            Gl.BufferData(BufferTarget.ElementArrayBuffer, (uint)(sizeof(uint) * indices.Length), indices, BufferUsage.StaticDraw);
-
-            Gl.VertexAttribPointer(0, 3, VertexAttribType.Float, false, 8 * sizeof(float), IntPtr.Zero);
-            Gl.EnableVertexAttribArray(0);
-
-            // position attribute
-            Gl.VertexAttribPointer(0, 3, VertexAttribType.Float, false, 8 * sizeof(float), (IntPtr)0);
-            Gl.EnableVertexAttribArray(0);
-            // color attribute
-            Gl.VertexAttribPointer(1, 3, VertexAttribType.Float, false, 8 * sizeof(float), (IntPtr)(3 * sizeof(float)));
-            Gl.EnableVertexAttribArray(1);
-            // texture coord attribute
-            Gl.VertexAttribPointer(2, 2, VertexAttribType.Float, false, 8 * sizeof(float), (IntPtr)(6 * sizeof(float)));
-            Gl.EnableVertexAttribArray(2);
-
-            // load and create a texture 
-            // -------------------------
-            // texture 1
-            // ---------
-            Gl.GenTextures(ids);
-            texture = ids[0];
-            Gl.BindTexture(TextureTarget.Texture2d, texture);
-            // set the texture wrapping parameters
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, Gl.CLAMP_TO_BORDER);   // set texture wrapping to GL_REPEAT (default wrapping method)
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, Gl.CLAMP_TO_BORDER);
-            // set texture filtering parameters
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, Gl.NEAREST);
-            Gl.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, Gl.NEAREST);
-
-            // load image, create texture and generate mipmaps
-            //int width, height, nrChannels;
-            //stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-            //                                        // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
-            //unsigned char* data = stbi_load(FileSystem::getPath("resources/textures/container.jpg").c_str(), &width, &height, &nrChannels, 0);
-            //if (data)
-            //{
-            //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-            //    glGenerateMipmap(GL_TEXTURE_2D);
-            //}
-            //else
-            //{
-            //    std::cout << "Failed to load texture" << std::endl;
-            //}
-            //UpdateFrameBuffer();
-            //var data = Enumerable.Range(0, 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
-            using (var bufferPin = platform.FrameBuffer.Pin())
-            {
-                Gl.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, 256, 240, 0, PixelFormat.Bgra, PixelType.UnsignedByte, (IntPtr)bufferPin.Pointer);
-            }
-            //Gl.GenerateMipmap(TextureTarget.Texture2d);
-
-            Gl.UseProgram(shaderProgram);
-            Gl.Uniform1i(Gl.GetUniformLocation(shaderProgram, "texture"), 1, 0);
-
-            //// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-            //Gl.BindBuffer(BufferTarget.ArrayBuffer, 0);
-
-            //// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-            ////glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-            //// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-            //// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-            //Gl.BindVertexArray(0);
-        }
-
         //private unsafe static void UpdateFrameBuffer()
         //{
         //    using (var pin = platform.FrameBuffer.Pin())
@@ -248,131 +132,131 @@ namespace NES
         static Stopwatch frameTimer = Stopwatch.StartNew();
         static byte[] frameBuffer = new byte[256 * 240 * 4];
 
-        private unsafe static void NativeWindow_Render(object sender, NativeWindowEventArgs e)
-        {
-            Gl.ClearColor(0.5f, 0.0f, 0.5f, 1.0f);
-            Gl.Clear(ClearBufferMask.ColorBufferBit);
+        //private unsafe static void NativeWindow_Render(object sender, NativeWindowEventArgs e)
+        //{
+        //    Gl.ClearColor(0.5f, 0.0f, 0.5f, 1.0f);
+        //    Gl.Clear(ClearBufferMask.ColorBufferBit);
 
-            //UpdateFrameBuffer();
-            //var data = Enumerable.Range(random.Next(), 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
-            using (var bufferPin = platform.FrameBuffer.Pin())
-            {
-                Gl.TexSubImage2D(TextureTarget.Texture2d, 0, 0, 0, 256, 240, PixelFormat.Bgra, PixelType.UnsignedByte, (IntPtr)bufferPin.Pointer);
-            }
-            //Gl.GenerateMipmap(TextureTarget.Texture2d);
+        //    //UpdateFrameBuffer();
+        //    //var data = Enumerable.Range(random.Next(), 256 * 256).SelectMany(o => new byte[] { (byte)o, (byte)(o >> 8), (byte)(o >> 16), byte.MaxValue }).ToArray();
+        //    using (var bufferPin = platform.FrameBuffer.Pin())
+        //    {
+        //        Gl.TexSubImage2D(TextureTarget.Texture2d, 0, 0, 0, 256, 240, PixelFormat.Bgra, PixelType.UnsignedByte, (IntPtr)bufferPin.Pointer);
+        //    }
+        //    //Gl.GenerateMipmap(TextureTarget.Texture2d);
 
-            // bind textures on corresponding texture units
-            Gl.ActiveTexture(TextureUnit.Texture0);
-            Gl.BindTexture(TextureTarget.Texture2d, texture);
+        //    // bind textures on corresponding texture units
+        //    Gl.ActiveTexture(TextureUnit.Texture0);
+        //    Gl.BindTexture(TextureTarget.Texture2d, texture);
 
-            Gl.UseProgram(shaderProgram);
-            Gl.BindVertexArray(vao);
-            Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, IntPtr.Zero);
+        //    Gl.UseProgram(shaderProgram);
+        //    Gl.BindVertexArray(vao);
+        //    Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, IntPtr.Zero);
 
-            //Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-            //e.DeviceContext.SwapBuffers();
-            frame++;
-            if (frameRateTimer.ElapsedMilliseconds > 1000)
-            {
-                Console.WriteLine($"{frame}fps");
-                frame = 0;
-                frameRateTimer.Restart();
-            }
+        //    //Gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+        //    //e.DeviceContext.SwapBuffers();
+        //    frame++;
+        //    if (frameRateTimer.ElapsedMilliseconds > 1000)
+        //    {
+        //        Console.WriteLine($"{frame}fps");
+        //        frame = 0;
+        //        frameRateTimer.Restart();
+        //    }
 
-            var delay = 15 - (int)frameTimer.ElapsedMilliseconds;
-                //Console.WriteLine(delay);
-            if (delay > 0)
-            {
-                Thread.Sleep(delay);
-            }
-            frameTimer.Restart();
-        }
+        //    var delay = 15 - (int)frameTimer.ElapsedMilliseconds;
+        //        //Console.WriteLine(delay);
+        //    if (delay > 0)
+        //    {
+        //        Thread.Sleep(delay);
+        //    }
+        //    frameTimer.Restart();
+        //}
 
-        private static unsafe uint CreateShaderProgram(uint vertexShader, uint fragmentShader)
-        {
-            var shaderProgram = Gl.CreateProgram();
+        //private static unsafe uint CreateShaderProgram(uint vertexShader, uint fragmentShader)
+        //{
+        //    var shaderProgram = Gl.CreateProgram();
 
-            Gl.AttachShader(shaderProgram, vertexShader);
-            Gl.AttachShader(shaderProgram, fragmentShader);
-            Gl.LinkProgram(shaderProgram);
+        //    Gl.AttachShader(shaderProgram, vertexShader);
+        //    Gl.AttachShader(shaderProgram, fragmentShader);
+        //    Gl.LinkProgram(shaderProgram);
 
-            Gl.GetProgram(shaderProgram, ProgramProperty.LinkStatus, out int success);
-            if (success == 0)
-            {
-                var message = new StringBuilder();
-                Gl.GetProgramInfoLog(shaderProgram, 512, out int length, message);
-                throw new Exception(message.ToString());
-            }
+        //    Gl.GetProgram(shaderProgram, ProgramProperty.LinkStatus, out int success);
+        //    if (success == 0)
+        //    {
+        //        var message = new StringBuilder();
+        //        Gl.GetProgramInfoLog(shaderProgram, 512, out int length, message);
+        //        throw new Exception(message.ToString());
+        //    }
 
-            return shaderProgram;
-        }
+        //    return shaderProgram;
+        //}
 
-        private static unsafe uint CreateFragmentShader(uint vertexShader)
-        {
-            var fragmentShaderSource = @"#version 330 core
-out vec4 FragColor;
+        //        private static unsafe uint CreateFragmentShader(uint vertexShader)
+        //        {
+        //            var fragmentShaderSource = @"#version 330 core
+        //out vec4 FragColor;
 
-in vec3 ourColor;
-in vec2 TexCoord;
+        //in vec3 ourColor;
+        //in vec2 TexCoord;
 
-// texture samplers
-uniform sampler2D texture;
+        //// texture samplers
+        //uniform sampler2D texture;
 
-void main()
-{
-	// linearly interpolate between both textures (80% container, 20% awesomeface)
-	//FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);
-    FragColor = texture(texture, TexCoord);
-    //FragColor = texelFetch(texture, ivec2(gl_FragCoord.xy), 0);
-}".Split("\n");
+        //void main()
+        //{
+        //	// linearly interpolate between both textures (80% container, 20% awesomeface)
+        //	//FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);
+        //    FragColor = texture(texture, TexCoord);
+        //    //FragColor = texelFetch(texture, ivec2(gl_FragCoord.xy), 0);
+        //}".Split("\n");
 
-            var fragmentShader = Gl.CreateShader(ShaderType.FragmentShader);
-            Gl.ShaderSource(fragmentShader, fragmentShaderSource, fragmentShaderSource.Select(o => o.Length).ToArray());
-            Gl.CompileShader(fragmentShader);
-            Gl.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int success);
+        //            var fragmentShader = Gl.CreateShader(ShaderType.FragmentShader);
+        //            Gl.ShaderSource(fragmentShader, fragmentShaderSource, fragmentShaderSource.Select(o => o.Length).ToArray());
+        //            Gl.CompileShader(fragmentShader);
+        //            Gl.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int success);
 
-            if (success == 0)
-            {
-                var message = new StringBuilder();
-                Gl.GetShaderInfoLog(fragmentShader, 512, out int length, message);
-                throw new Exception(message.ToString());
-            }
+        //            if (success == 0)
+        //            {
+        //                var message = new StringBuilder();
+        //                Gl.GetShaderInfoLog(fragmentShader, 512, out int length, message);
+        //                throw new Exception(message.ToString());
+        //            }
 
-            return fragmentShader;
-        }
+        //            return fragmentShader;
+        //        }
 
-        private static unsafe uint CreateVertexShader()
-        {
-            var vertexShaderSource = @"#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-layout (location = 2) in vec2 aTexCoord;
+        //        private static unsafe uint CreateVertexShader()
+        //        {
+        //            var vertexShaderSource = @"#version 330 core
+        //layout (location = 0) in vec3 aPos;
+        //layout (location = 1) in vec3 aColor;
+        //layout (location = 2) in vec2 aTexCoord;
 
-out vec3 ourColor;
-out vec2 TexCoord;
+        //out vec3 ourColor;
+        //out vec2 TexCoord;
 
-void main()
-{
-    gl_Position = vec4(aPos, 1.0);
-	//ourColor = aColor;
-	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
-}".Split("\n");
+        //void main()
+        //{
+        //    gl_Position = vec4(aPos, 1.0);
+        //	//ourColor = aColor;
+        //	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
+        //}".Split("\r\n");
 
-            var vertexShader = Gl.CreateShader(ShaderType.VertexShader);
+        //            var vertexShader = Gl.CreateShader(ShaderType.VertexShader);
 
-            Gl.ShaderSource(vertexShader, vertexShaderSource, vertexShaderSource.Select(o => o.Length).ToArray());
-            Gl.CompileShader(vertexShader);
-            Gl.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int success);
+        //            Gl.ShaderSource(vertexShader, vertexShaderSource, vertexShaderSource.Select(o => o.Length).ToArray());
+        //            Gl.CompileShader(vertexShader);
+        //            Gl.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int success);
 
-            if (success == 0)
-            {
-                var message = new StringBuilder();
-                Gl.GetShaderInfoLog(vertexShader, 512, out int length, message);
-                throw new Exception(message.ToString());
-            }
+        //            if (success == 0)
+        //            {
+        //                var message = new StringBuilder();
+        //                Gl.GetShaderInfoLog(vertexShader, 512, out int length, message);
+        //                throw new Exception(message.ToString());
+        //            }
 
-            return vertexShader;
-        }
+        //            return vertexShader;
+        //        }
 
         private static void RunBasic()
         {
