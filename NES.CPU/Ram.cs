@@ -15,6 +15,8 @@ namespace NES.CPU
             this.memoryHandle = this.memory.Pin();
         }
 
+        public ReadOnlyMemory<byte> Memory => this.memory;
+
         public AddressRange AddressRange { get; private set; }
 
         public unsafe byte Read(Address address)

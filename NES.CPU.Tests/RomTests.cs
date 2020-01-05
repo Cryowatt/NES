@@ -35,7 +35,9 @@ namespace NES.CPU.Tests
                 var state = new Queue<ExecutionState>();
                 var romFile = RomImage.From(reader);
                 var mapper = new Mapper0(romFile);
-                var bus = new NesBus(mapper);
+                var apu = new APU();
+                var ppu = new PPU(mapper);
+                var bus = new NesBus(mapper, ppu, apu);
                 bus.Write(0x6001, 0xc0);
                 var cpu = new Ricoh2AFunctional(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
                 bool instructionTriggered = false;
@@ -112,13 +114,13 @@ namespace NES.CPU.Tests
         {
             using var reader = new BinaryReader(File.OpenRead("TestRoms/nestest.nes"));
             var mapper = new Mapper0(RomImage.From(reader));
-
-            var bus = new NesBus(mapper);
+            var ppu = new PPU(mapper);
+            var apu = new APU();
+            var bus = new NesBus(mapper, ppu, apu, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
             bus.Write(0x6001, 0xc0);
-            var cpu = new Ricoh2AFunctional(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
 
-            var platform = new Platform(bus, cpu, new PPU(mapper));
-            platform.DoCycle();
+            //var platform = new NesBusbus, cpu, new PPU(mapper));
+            bus.DoCycle();
         }
     }
 }

@@ -341,7 +341,7 @@ namespace NES.CPU
                 }
                 else
                 {
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address);
+                    cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
                 }
             }
 
@@ -356,7 +356,7 @@ namespace NES.CPU
                 }
                 else
                 {
-                    cpu.TraceInstruction(operation.Method.Name, cpu.address);
+                    cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
                 }
             }
 
@@ -364,7 +364,7 @@ namespace NES.CPU
             {
                 cpu.Read(cpu.regs.PC);
                 cpu.regs.PC.High = cpu.address.High;
-                cpu.TraceInstruction(operation.Method.Name, cpu.address);
+                cpu.TraceInstruction(operation.Method.Name, cpu.address, cpu.operand);
             }
 
             Enqueue(Conditional);

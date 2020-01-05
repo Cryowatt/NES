@@ -6,7 +6,7 @@ namespace NES.CPU
     {
         private Ram nametableRam = new Ram(new AddressRange(0x2000, 0x3F1F), 0x1000);
         private Ram paletteRam = new Ram(new AddressRange(0x3F00, 0x3FFF), 0x0020);
-        private IPPUBusDevice mapper;
+        private IMapper mapper;
 
         // $0000-$0FFF	$1000	Pattern table 0
         // $1000-$1FFF	$1000	Pattern table 1
@@ -21,6 +21,9 @@ namespace NES.CPU
         {
             this.mapper = mapper;
         }
+
+        public ReadOnlyMemory<byte> Nametable => this.nametableRam.Memory;
+        public ReadOnlyMemory<byte> PatternTable => this.mapper.PatternTable;
 
         // I'm making the assumption that each device uses the first three bits of the address as a chip-select. This means there are only 8 device slots in total (0b000, 0b111).
         protected readonly IBusDevice[] devices;
@@ -51,11 +54,12 @@ namespace NES.CPU
 
         public byte Read(Address ptr)
         {
+            ptr.Ptr &= 0x3fff;
             var bank = ptr.Ptr >> 12;
             return bank switch
             {
-                0x0 => this.mapper.Read(ptr),
-                0x1 => this.mapper.Read(ptr),
+                0x0 => ((IPPUBusDevice)this.mapper).Read(ptr),
+                0x1 => ((IPPUBusDevice)this.mapper).Read(ptr),
                 0x2 => this.nametableRam.Read(ptr),
                 0x3 => this.ReadPalette(ptr),
                 _ => throw new InvalidOperationException(),
@@ -76,11 +80,12 @@ namespace NES.CPU
 
         public void Write(Address ptr, byte value)
         {
+            ptr.Ptr &= 0x3fff;
             var bank = ptr.Ptr >> 12;
             switch (bank)
             {
-                case 0x0: this.mapper.Write(ptr, value); break;
-                case 0x1: this.mapper.Write(ptr, value); break;
+                case 0x0: ((IPPUBusDevice)this.mapper).Write(ptr, value); break;
+                case 0x1: ((IPPUBusDevice)this.mapper).Write(ptr, value); break;
                 case 0x2: this.nametableRam.Write(ptr, value); break;
                 case 0x3: this.WritePalette(ptr, value); break;
                 default: throw new InvalidOperationException();

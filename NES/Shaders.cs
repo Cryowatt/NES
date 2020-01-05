@@ -1,34 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace NES
 {
     public static class Shaders
     {
-        public const string VertexCode = @"
-#version 450
-layout(location = 0) in vec2 Position;
-layout(location = 1) in vec2 Texture;
-layout(location = 0) out vec2 TexCoord;
+        public static readonly string VertexCode = File.ReadAllText("./Shaders/Passthrough.vs");
+        
+//        @"
+//#version 450
+//layout(location = 0) in vec2 Position;
+//layout(location = 1) in vec2 Texture;
+//layout(location = 0) out vec2 TexCoord;
 
-void main()
-{
-    gl_Position = vec4(Position, 0, 1);
-    TexCoord = vec2(Texture.x, Texture.y);
-}";
+//void main()
+//{
+//    gl_Position = vec4(Position, 0, 1);
+//    TexCoord = vec2(Texture.x, Texture.y);
+//}";
 
-        public const string FragmentCode = @"
-#version 450
-layout(location = 0) in vec2 TexCoord;
-layout(location = 0) out vec4 OutColor;
+        public static readonly string FragmentCode = File.ReadAllText("./Shaders/Patterns.fs");
+//        @"
+//#version 450
+//layout(location = 0) in vec2 TexCoord;
+//layout(location = 0) out vec4 OutColor;
 
-layout(binding = 0) uniform sampler2D texture1;
+//struct Tile
+//{
+//  byte low[8];
+//  byte high[8];
+//};
 
-void main()
-{
-    OutColor = texture(texture1, TexCoord);
-}"; 
+//layout(binding = 0) uniform sampler2D texture1;
+//layout(binding = 1) uniform Tile patterns;
+
+//void main()
+//{
+//    OutColor = texture(texture1, TexCoord);
+//}";
         //            var fragmentShaderSource = @"#version 330 core
         //out vec4 FragColor;
 

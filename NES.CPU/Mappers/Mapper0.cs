@@ -20,6 +20,8 @@ namespace NES.CPU.Mappers
 
         public AddressRange AddressRange { get; } = new AddressRange(0x6000, 0xffff);
 
+        public ReadOnlyMemory<byte> PatternTable => this.image.CharacterRomData.Slice(0, 0x2000);
+
         unsafe byte IBusDevice.Read(Address address)
         {
             //CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
