@@ -34,7 +34,7 @@ namespace NES.CPU.Tests
             {
                 var state = new Queue<ExecutionState>();
                 var romFile = RomImage.From(reader);
-                var mapper = new Mapper0(romFile);
+                var mapper = Mapper.FromImage(romFile);
                 var apu = new APU();
                 var ppu = new PPU(mapper);
                 var bus = new NesBus(mapper, ppu, apu);
@@ -113,7 +113,7 @@ namespace NES.CPU.Tests
         public void NesTest()
         {
             using var reader = new BinaryReader(File.OpenRead("TestRoms/nestest.nes"));
-            var mapper = new Mapper0(RomImage.From(reader));
+            var mapper = Mapper.FromImage(RomImage.From(reader));
             var ppu = new PPU(mapper);
             var apu = new APU();
             var bus = new NesBus(mapper, ppu, apu, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);

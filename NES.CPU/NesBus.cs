@@ -57,7 +57,7 @@ namespace NES.CPU
 
         private void OnInstructionTrace(InstructionTrace obj)
         {
-            //Console.WriteLine(obj.ToString());
+            OnInstruction?.Invoke(obj);
         }
 
         public NesBus(IMapper mapper, IInputDevice input1 = null, IInputDevice input2 = null) :
@@ -72,6 +72,7 @@ namespace NES.CPU
         public PPU PPU => ppu;
 
         public event Action<Trace> OnCycle;
+        public event Action<InstructionTrace> OnInstruction;
 
 
         public void Reset()
@@ -92,7 +93,7 @@ namespace NES.CPU
 
                     if (delay > TimeSpan.Zero)
                     {
-                        Console.WriteLine($"CPU Delay {delay}");
+                        //Console.WriteLine($"CPU Delay {delay}");
                         Thread.Sleep(delay);
                     }
                 }

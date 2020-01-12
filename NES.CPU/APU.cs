@@ -11,7 +11,6 @@ namespace NES.CPU
         public byte ReadNext() => 0;
     }
 
-
     public interface IInputDevice
     {
         bool IsStrobeEnabled { set; }
@@ -33,6 +32,10 @@ namespace NES.CPU
 
         public byte Read(Address address)
         {
+            //if(address.Ptr == 0x4013)
+            //{
+
+            //}
             if (address.Ptr == 0x4016)
             {
                 return ReadInput(this.Input1);
@@ -43,7 +46,7 @@ namespace NES.CPU
             }
             else
             {
-                throw new System.NotImplementedException();
+                return 0;
             }
         }
 
@@ -66,10 +69,10 @@ namespace NES.CPU
             {
                 this.Input2.IsStrobeEnabled = (value & 0x1) > 0;
             }
-            else
-            {
-                throw new System.NotImplementedException();
-            }
+            //else
+            //{
+            //    throw new System.NotImplementedException();
+            //}
         }
     }
 }

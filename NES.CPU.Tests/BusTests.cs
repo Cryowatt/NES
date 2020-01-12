@@ -15,7 +15,8 @@ namespace NES.CPU.Tests
             using (var reader = new BinaryReader(File.OpenRead("TestRoms/01-basics.nes")))
             {
                 var romFile = RomImage.From(reader);
-                var bus = new NesBus(new Mapper0(romFile));
+                var mapper = Mapper.FromImage(romFile);
+                var bus = new NesBus(mapper);
                 bus.Read(0x2002);
             }
         }

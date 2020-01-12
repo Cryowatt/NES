@@ -79,7 +79,7 @@ namespace NES
                 romFile = RomImage.From(reader);
             }
 
-            var mapper = new Mapper0(romFile);
+            var mapper = Mapper.FromImage(romFile);
             var platform = new NesBus(mapper);
             platform.Reset();
             platform.Run();

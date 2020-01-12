@@ -191,6 +191,7 @@ namespace NES.CPU
 
         public void DoCycle()
         {
+
             if (scanline < 240)
             {
                 Render();
@@ -220,54 +221,54 @@ namespace NES.CPU
 
         private void Render()
         {
-            if (cycle == 256)
-            {
-                // TODO: If rendering is enabled, the PPU increments the vertical position in v. The effective Y scroll coordinate is incremented, which is a complex operation that will correctly skip the attribute table memory regions, and wrap to the next nametable appropriately.
+            //if (cycle == 256)
+            //{
+            //    // TODO: If rendering is enabled, the PPU increments the vertical position in v. The effective Y scroll coordinate is incremented, which is a complex operation that will correctly skip the attribute table memory regions, and wrap to the next nametable appropriately.
 
-                if (this.vAddress.FineY < 7) // if fine Y < 7
-                {
-                    this.vAddress.FineY++; // increment fine Y
-                }
-                else
-                {
-                    this.vAddress.FineY = 0;
-                    byte y = this.vAddress.CoarseY;
+            //    if (this.vAddress.FineY < 7) // if fine Y < 7
+            //    {
+            //        this.vAddress.FineY++; // increment fine Y
+            //    }
+            //    else
+            //    {
+            //        this.vAddress.FineY = 0;
+            //        byte y = this.vAddress.CoarseY;
 
-                    if (y == 29)
-                    {
-                        y = 0; // coarse Y = 0
-                        this.vAddress.Nametable ^= 2; // switch vertical nametable
-                    }
-                    else if (y == 31)
-                    {
-                        y = 0; // coarse Y = 0, nametable not switched
-                    }
-                    else
-                    {
-                        y += 1; // increment coarse Y
-                    }
+            //        if (y == 29)
+            //        {
+            //            y = 0; // coarse Y = 0
+            //            this.vAddress.Nametable ^= 2; // switch vertical nametable
+            //        }
+            //        else if (y == 31)
+            //        {
+            //            y = 0; // coarse Y = 0, nametable not switched
+            //        }
+            //        else
+            //        {
+            //            y += 1; // increment coarse Y
+            //        }
 
-                    this.vAddress.CoarseY = y; // put coarse Y back into v
-                }
-            }
-            else if (cycle == 257)
-            {
-                // yyy NN YYYYY XXXXX
-                // ||| || ||||| +++++-- coarse X scroll
-                // ||| || +++++-------- coarse Y scroll
-                // ||| ++-------------- nametable select
-                // +++----------------- fine Y scroll
+            //        this.vAddress.CoarseY = y; // put coarse Y back into v
+            //    }
+            //}
+            //else if (cycle == 257)
+            //{
+            //    // yyy NN YYYYY XXXXX
+            //    // ||| || ||||| +++++-- coarse X scroll
+            //    // ||| || +++++-------- coarse Y scroll
+            //    // ||| ++-------------- nametable select
+            //    // +++----------------- fine Y scroll
 
-                // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
-                const ushort mask = 0b000_0100_0001_1111;
-                this.vAddress.Ptr = (ushort)((this.vAddress.Ptr & ~mask) | (this.tAddress.Ptr & mask));
-            }
-            else if (280 <= cycle && cycle <= 304)
-            {
-                // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
-                const ushort mask = 0b111_1011_1110_0000;
-                this.vAddress.Ptr = (ushort)((this.vAddress.Ptr & ~mask) | (this.tAddress.Ptr & mask));
-            }
+            //    // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
+            //    const ushort mask = 0b000_0100_0001_1111;
+            //    this.vAddress.Ptr = (ushort)((this.vAddress.Ptr & ~mask) | (this.tAddress.Ptr & mask));
+            //}
+            //else if (280 <= cycle && cycle <= 304)
+            //{
+            //    // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
+            //    const ushort mask = 0b111_1011_1110_0000;
+            //    this.vAddress.Ptr = (ushort)((this.vAddress.Ptr & ~mask) | (this.tAddress.Ptr & mask));
+            //}
 
             //if (cycle == 0)
             //{
@@ -423,10 +424,10 @@ namespace NES.CPU
                     }
                     break;
                 case 7:
-                    if (0x40 <= value && value < 0x80)
-                    {
-                        Console.Write((char)value);
-                    }
+                    //if (0x40 <= value && value < 0x80)
+                    //{
+                    //    Console.Write((char)value);
+                    //}
                     this.ppuBus.Write(this.vAddress.Address, value);
                     this.vAddress.Ptr += (ushort)((this.registers.PPUCTRL & PPUControl.LineIncrement) == 0 ? 1 : 32);
                     break;

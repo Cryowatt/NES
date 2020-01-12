@@ -123,7 +123,8 @@ namespace NES
             {
                 WindowWidth = 768,
                 WindowHeight = 480,
-                WindowTitle = "NES"
+                WindowTitle = "NES",
+                WindowInitialState = WindowState.Normal
             };
             VeldridStartup.CreateWindowAndGraphicsDevice(windowCI, out window, out device);
             CreateResources();
@@ -133,19 +134,26 @@ namespace NES
         {
             RomImage romFile;
             //var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
-            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\nestest.nes");
+            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\official_only.nes");
+            //var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\nestest.nes");
             //var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Donkey Kong (JU).nes");
             using (var reader = new BinaryReader(stream))
             {
                 romFile = RomImage.From(reader);
             }
 
-            var mapper = new Mapper0(romFile);
+            var mapper = Mapper.FromImage(romFile);
             platform = new NesBus(mapper, input1: input1);
-            
+            platform.OnInstruction += OnInstruction;
+
             this.Nametable = platform.PatternTable.Pin();
             platform.Reset();
             Task.Factory.StartNew(platform.Run);
+        }
+
+        private void OnInstruction(InstructionTrace obj)
+        {
+            Console.WriteLine(obj);
         }
 
         public void Run()
@@ -161,7 +169,7 @@ namespace NES
 
                 if (timer.ElapsedMilliseconds > 1000)
                 {
-                    Console.WriteLine($"{frames}fps");
+                    //Console.WriteLine($"{frames}fps");
                     frames = 0;
                     timer.Restart();
                 }
@@ -380,7 +388,6 @@ namespace NES
                 indexStart: 0,
                 vertexOffset: 8,
                 instanceStart: 0);
-
             // End() must be called before commands can be submitted for execution.
 
             commandList.End();
