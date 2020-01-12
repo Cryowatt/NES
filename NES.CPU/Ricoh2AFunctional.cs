@@ -31,6 +31,7 @@ namespace NES.CPU
             this.bus = bus;
             this.regs = registers;
             this.initAddress = initAddress ?? new Address(0xFFFC);
+            StartTrace();
         }
 
         public CpuRegisters Registers => (CpuRegisters)this.regs.Clone();
@@ -409,7 +410,6 @@ namespace NES.CPU
 
         public void Reset()
         {
-            StartTrace();
             workQueue.Enqueue(ReadResetToPCL);
             workQueue.Enqueue(ReadResetToPCH);
         }

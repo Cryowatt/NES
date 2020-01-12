@@ -112,7 +112,7 @@ namespace NES.CPU.Tests
         [Fact]
         public void NesTest()
         {
-            using var reader = new BinaryReader(File.OpenRead("TestRoms/nestest.nes"));
+            using var reader = new BinaryReader(File.OpenRead("../../../../nes-test-roms/other/nestest.nes"));
             var mapper = Mapper.FromImage(RomImage.From(reader));
             var ppu = new PPU(mapper);
             var apu = new APU();

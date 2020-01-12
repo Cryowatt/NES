@@ -133,10 +133,8 @@ namespace NES
         public void StartNes()
         {
             RomImage romFile;
-            //var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\01-basics.nes");
-            var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\official_only.nes");
-            //var stream = File.OpenRead(@"..\NES.CPU.Tests\TestRoms\nestest.nes");
-            //var stream = File.OpenRead(@"C:\Users\ericc\Source\Repos\Cryowatt\NES\NES\Donkey Kong (JU).nes");
+            var stream = File.OpenRead(@"..\nes-test-roms\instr_test-v3\official_only.nes");
+            //var stream = File.OpenRead(@"..\nes-test-roms\\other\nestest.nes");
             using (var reader = new BinaryReader(stream))
             {
                 romFile = RomImage.From(reader);

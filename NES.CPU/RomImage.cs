@@ -39,14 +39,14 @@ namespace NES.CPU
             //Trainer, if present(0 or 512 bytes)
             if(image.RomFlags.HasFlag(RomFlags.Trainer))
             {
-                image.TrainerData = reader.ReadBytes(512).AsMemory();
+                image.TrainerData = reader.ReadBytes(0x200).AsMemory();
             }
 
             //PRG ROM data(16384 * x bytes)
-            image.ProgramRomData = reader.ReadBytes(16384 * image.ProgramRomSize).AsMemory();
+            image.ProgramRomData = reader.ReadBytes(0x4000 * image.ProgramRomSize).AsMemory();
 
             //CHR ROM data, if present(8192 * y bytes)
-            image.CharacterRomData = reader.ReadBytes(8192 * image.CharacterRomSize).AsMemory();
+            image.CharacterRomData = reader.ReadBytes(0x2000 * image.CharacterRomSize).AsMemory();
 
             //PlayChoice INST-ROM, if present(0 or 8192 bytes)
             //PlayChoice PROM, if present(16 bytes Data, 16 bytes CounterOut)(this is often missing, see PC10 ROM - Images for details)

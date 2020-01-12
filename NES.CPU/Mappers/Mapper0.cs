@@ -8,14 +8,30 @@ namespace NES.CPU.Mappers
     {
         private Memory<byte> ram = new Memory<byte>(new byte[0x1000]);
         private readonly RomImage image;
-        private readonly MemoryHandle characterRomData;
-        private readonly MemoryHandle programRomData;
+        private readonly MemoryHandle characterData;
+        private readonly MemoryHandle programBank0;
+        private readonly MemoryHandle programBank1;
 
         public Mapper0(RomImage image)
         {
             this.image = image;
-            this.characterRomData = image.CharacterRomData.Pin();
-            this.programRomData = image.ProgramRomData.Pin();
+            this.characterData = image.CharacterRomData.Pin();
+            this.programBank0 = image.ProgramRomData.Slice(0, 0x4000).Pin();
+
+            if (image.ProgramRomSize == 1)
+            {
+                // mirror
+                this.programBank0 = image.ProgramRomData.Slice(0, 0x4000).Pin();
+            }
+            else if (image.ProgramRomSize == 2)
+            {
+                // last 16kb
+                this.programBank1 = image.ProgramRomData.Slice(0x4000, 0x4000).Pin();
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public AddressRange AddressRange { get; } = new AddressRange(0x6000, 0xffff);
@@ -32,17 +48,12 @@ namespace NES.CPU.Mappers
             else if (0x8000 <= address.Ptr && address.Ptr < 0xC000)
             {
                 //CPU $8000-$BFFF: First 16 KB of ROM.
-                return *((byte*)programRomData.Pointer + (address.Ptr - 0x8000));
+                return *((byte*)programBank0.Pointer + (address.Ptr - 0x8000));
             }
-            else if (0xC000 <= address.Ptr && image.ProgramRomSize == 1)
+            else if (0xC000 <= address.Ptr)
             {
                 //CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
-                return *((byte*)programRomData.Pointer + (address.Ptr - 0xC000));
-            }
-            else if (0xC000 <= address.Ptr && image.ProgramRomSize == 2)
-            {
-                //CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
-                return *((byte*)programRomData.Pointer + (address.Ptr - 0x8000));
+                return *((byte*)programBank1.Pointer + (address.Ptr - 0xC000));
             }
             else
             {
@@ -66,7 +77,7 @@ namespace NES.CPU.Mappers
         {
             if (address.Ptr < 0x2000)
             {
-                return *((byte*)this.characterRomData.Pointer + address.Ptr);
+                return *((byte*)this.characterData.Pointer + address.Ptr);
             }
             else
             {
@@ -78,7 +89,7 @@ namespace NES.CPU.Mappers
         {
             if (address.Ptr < 0x2000)
             {
-                *((byte*)this.characterRomData.Pointer + address.Ptr) = value;
+                *((byte*)this.characterData.Pointer + address.Ptr) = value;
             }
             else
             {
