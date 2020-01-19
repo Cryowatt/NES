@@ -133,7 +133,8 @@ namespace NES
         public void StartNes()
         {
             RomImage romFile;
-            var stream = File.OpenRead(@"..\nes-test-roms\instr_test-v3\official_only.nes");
+            var stream = File.OpenRead(@"..\nes-test-roms\instr_test-v3\rom_singles\01-implied.nes");
+            //var stream = File.OpenRead(@"..\nes-test-roms\instr_test-v3\official_only.nes");
             //var stream = File.OpenRead(@"..\nes-test-roms\\other\nestest.nes");
             using (var reader = new BinaryReader(stream))
             {

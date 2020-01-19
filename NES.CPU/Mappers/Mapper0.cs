@@ -21,7 +21,7 @@ namespace NES.CPU.Mappers
             if (image.ProgramRomSize == 1)
             {
                 // mirror
-                this.programBank0 = image.ProgramRomData.Slice(0, 0x4000).Pin();
+                this.programBank1 = image.ProgramRomData.Slice(0, 0x4000).Pin();
             }
             else if (image.ProgramRomSize == 2)
             {
