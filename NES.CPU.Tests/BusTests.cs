@@ -17,7 +17,7 @@ namespace NES.CPU.Tests
                 var romFile = RomImage.From(reader);
                 var mapper = Mapper.FromImage(romFile);
                 var bus = new NesBus(mapper);
-                bus.Read(0x2002);
+                bus.Read(new Address(0x2002));
             }
         }
     }

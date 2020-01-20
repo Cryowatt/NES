@@ -22,7 +22,7 @@ namespace NES.CPU
         public CpuRegisters(StatusFlags flags) : this()
         {
             this.S = 0xfd;
-            this.PC = 0x0000;
+            this.PC = new Address(0x0000);
             this.P = flags;
         }
 

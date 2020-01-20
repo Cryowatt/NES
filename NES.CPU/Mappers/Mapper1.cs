@@ -55,7 +55,7 @@ namespace NES.CPU.Mappers
             if (0x6000 <= address.Ptr && address.Ptr < 0x8000)
             {
                 //CPU $6000-$7FFF: 8 KB PRG RAM bank, (optional)
-                return prgRam.Span[address - 0x06000];
+                return prgRam.Span[address.Ptr - 0x6000];
             }
             else if (0x8000 <= address.Ptr && address.Ptr < 0xC000)
             {
@@ -164,7 +164,7 @@ namespace NES.CPU.Mappers
         {
             if (0x6000 <= address && address < 0x8000)
             {
-                ram.Span[address - 0x06000] = value;
+                ram.Span[address - 0x6000] = value;
             }
             else
             {

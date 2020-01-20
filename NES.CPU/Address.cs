@@ -54,7 +54,7 @@ namespace NES.CPU
         }
 
         public static implicit operator Address(ushort address) => new Address(address);
-        public static implicit operator ushort(Address address) => address.Ptr;
+        //public static implicit operator ushort(Address address) => address.Ptr;
 
         public override string ToString()
         {

@@ -43,14 +43,18 @@ namespace NES.CPU
         public static bool BPL(Ricoh2AFunctional cpu) => !cpu.regs.Negative;
         public void BRK()
         {
-            Enqueue(c => c.Read(c.regs.PC.Ptr++));
+            Enqueue(c =>
+            {
+                c.regs.PC.Ptr++;
+                c.Read(c.regs.PC);
+            });
             Enqueue(PushStackFromPCH);
             Enqueue(PushStackFromPCL);
             Enqueue(PushStackFromP);
-            Enqueue(c => c.regs.PC.Low = c.Read(0xfffe));
+            Enqueue(c => c.regs.PC.Low = c.Read(new Address(0xfffe)));
             Enqueue(c =>
             {
-                c.regs.PC.High = c.Read(0xffff);
+                c.regs.PC.High = c.Read(new Address(0xffff));
                 c.TraceInstruction("BRK");
             });
         }
@@ -275,6 +279,8 @@ namespace NES.CPU
         public static byte STA(Ricoh2AFunctional cpu) => cpu.regs.A;
         public static byte STX(Ricoh2AFunctional cpu) => cpu.regs.X;
         public static byte STY(Ricoh2AFunctional cpu) => cpu.regs.Y;
+        public static byte SXA(Ricoh2AFunctional cpu, byte operand) => (byte)(cpu.regs.X & (cpu.address.High + 1));
+        public static byte SYA(Ricoh2AFunctional cpu, byte operand) => (byte)(cpu.regs.Y & (cpu.address.High + 1));
         public static void TAX(Ricoh2AFunctional cpu) => cpu.regs.X = cpu.regs.A;
         public static void TAY(Ricoh2AFunctional cpu) => cpu.regs.Y = cpu.regs.A;
         public static void TSX(Ricoh2AFunctional cpu) => cpu.regs.X = cpu.regs.S;

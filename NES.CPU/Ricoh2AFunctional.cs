@@ -11,13 +11,14 @@ namespace NES.CPU
         private Trace cycleTrace = null;
         private InstructionTrace lastInstruction;
         private IBus bus;
-        private Address stackPointer = 0x0100;
+        private Address stackPointer = new Address(0x0100);
         private Address address;
         private Address pointer;
         private Queue<Action<Ricoh2AFunctional>> workQueue = new Queue<Action<Ricoh2AFunctional>>(8);
         private CpuRegisters regs;
         private Address initAddress;
         private byte operand;
+        private long cycleCount;
 
         public event Action<InstructionTrace> InstructionTrace;
 
@@ -27,7 +28,7 @@ namespace NES.CPU
 
         public Ricoh2AFunctional(IBus bus, CpuRegisters registers, Address? initAddress = null)
         {
-            this.CycleCount = 5;
+            this.cycleCount = 5;
             this.bus = bus;
             this.regs = registers;
             this.initAddress = initAddress ?? new Address(0xFFFC);
@@ -45,7 +46,7 @@ namespace NES.CPU
             }
         }
 
-        public long CycleCount { get; private set; }
+        public long CycleCount => this.cycleCount;
 
         private void Enqueue(Action<Ricoh2AFunctional> operation) => this.workQueue.Enqueue(operation);
 
@@ -186,6 +187,7 @@ namespace NES.CPU
                 if (c.address.High == c.pointer.High)
                 {
                     operation(c, c.operand);
+                    c.TraceInstruction(operation.Method.Name, c.address, c.operand);
                 }
                 else
                 {
@@ -423,7 +425,7 @@ namespace NES.CPU
 
             var work = workQueue.Dequeue();
             work(this);
-            CycleCount++;
+            cycleCount++;
             return cycleTrace;
         }
 

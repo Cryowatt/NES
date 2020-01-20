@@ -34,6 +34,8 @@ namespace NES.CPU.Mappers
             }
         }
 
+        public Memory<byte> Ram => this.ram;
+
         public AddressRange AddressRange { get; } = new AddressRange(0x6000, 0xffff);
 
         public ReadOnlyMemory<byte> PatternTable => this.image.CharacterRomData.Slice(0, 0x2000);
@@ -43,7 +45,7 @@ namespace NES.CPU.Mappers
             //CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
             if (0x6000 <= address.Ptr && address.Ptr < 0x8000)
             {
-                return ram.Span[address - 0x06000];
+                return ram.Span[address.Ptr - 0x6000];
             }
             else if (0x8000 <= address.Ptr && address.Ptr < 0xC000)
             {
@@ -63,9 +65,9 @@ namespace NES.CPU.Mappers
 
         void IBusDevice.Write(Address address, byte value)
         {
-            if (0x6000 <= address && address < 0x8000)
+            if (0x6000 <= address.Ptr && address.Ptr < 0x8000)
             {
-                ram.Span[address - 0x06000] = value;
+                ram.Span[address.Ptr - 0x6000] = value;
             }
             else
             {

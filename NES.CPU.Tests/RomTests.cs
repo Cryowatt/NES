@@ -38,8 +38,8 @@ namespace NES.CPU.Tests
                 var apu = new APU();
                 var ppu = new PPU(mapper);
                 var bus = new NesBus(mapper, ppu, apu);
-                bus.Write(0x6001, 0xc0);
-                var cpu = new Ricoh2AFunctional(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
+                bus.Write(new Address(0x6001), 0xc0);
+                var cpu = new Ricoh2AFunctional(bus, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), new Address(0x6000));
                 bool instructionTriggered = false;
                 cpu.Reset();
                 // Bootstrap
@@ -76,7 +76,7 @@ namespace NES.CPU.Tests
                         A = byte.Parse(parsedLog.Groups["A"].Value, NumberStyles.HexNumber),
                         X = byte.Parse(parsedLog.Groups["X"].Value, NumberStyles.HexNumber),
                         Y = byte.Parse(parsedLog.Groups["Y"].Value, NumberStyles.HexNumber),
-                        PC = ushort.Parse(parsedLog.Groups["OpAddress"].Value, NumberStyles.HexNumber),
+                        PC = new Address(ushort.Parse(parsedLog.Groups["OpAddress"].Value, NumberStyles.HexNumber)),
                         S = byte.Parse(parsedLog.Groups["SP"].Value, NumberStyles.HexNumber),
                         P = (StatusFlags)byte.Parse(parsedLog.Groups["P"].Value, NumberStyles.HexNumber),
                     };
@@ -116,47 +116,11 @@ namespace NES.CPU.Tests
             var mapper = Mapper.FromImage(RomImage.From(reader));
             var ppu = new PPU(mapper);
             var apu = new APU();
-            var bus = new NesBus(mapper, ppu, apu, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), 0x6000);
-            bus.Write(0x6001, 0xc0);
+            var bus = new NesBus(mapper, ppu, apu, new CpuRegisters(StatusFlags.InterruptDisable | StatusFlags.Undefined_6), new Address(0x6000));
+            bus.Write(new Address(0x6001), 0xc0);
 
             //var platform = new NesBusbus, cpu, new PPU(mapper));
             bus.DoCycle();
-        }
-
-        [Theory]
-        [InlineData("instr_test-v3/rom_singles/01-implied.nes")]
-        [InlineData("instr_test-v3/rom_singles/02-immediate.nes")]
-        [InlineData("instr_test-v3/rom_singles/03-zero_page.nes")]
-        [InlineData("instr_test-v3/rom_singles/04-zp_xy.nes")]
-        [InlineData("instr_test-v3/rom_singles/05-absolute.nes")]
-        [InlineData("instr_test-v3/rom_singles/06-abs_xy.nes")]
-        [InlineData("instr_test-v3/rom_singles/07-ind_x.nes")]
-        [InlineData("instr_test-v3/rom_singles/08-ind_y.nes")]
-        [InlineData("instr_test-v3/rom_singles/09-branches.nes")]
-        [InlineData("instr_test-v3/rom_singles/10-stack.nes")]
-        [InlineData("instr_test-v3/rom_singles/11-jmp_jsr.nes")]
-        [InlineData("instr_test-v3/rom_singles/12-rts.nes")]
-        [InlineData("instr_test-v3/rom_singles/13-rti.nes")]
-        [InlineData("instr_test-v3/rom_singles/14-brk.nes")]
-        [InlineData("instr_test-v3/rom_singles/15-special.nes")]
-        public void RomTest(string path)
-        {
-            using var reader = new BinaryReader(File.OpenRead(Path.Combine("../../../../nes-test-roms", path)));
-            var mapper = Mapper.FromImage(RomImage.From(reader));
-            var platform = new NesBus(mapper);
-            platform.Reset();
-            int result;
-            while ((result = platform.Read(0x6000)) == 0)
-            {
-                platform.DoCycle();
-            }
-
-            while ((result = platform.Read(0x6000)) == 0x80)
-            {
-                platform.DoCycle();
-            }
-
-            Assert.Equal(0, result);
         }
     }
 }

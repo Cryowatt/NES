@@ -314,6 +314,7 @@ namespace NES.CPU
                 case 0x3c: AbsoluteIndexedAddressing(NOP, this.regs.X); break;
                 case 0x5c: AbsoluteIndexedAddressing(NOP, this.regs.X); break;
                 case 0x7c: AbsoluteIndexedAddressing(NOP, this.regs.X); break;
+                case 0x9c: AbsoluteIndexedAddressing(SYA, this.regs.X); break;
                 case 0xbc: AbsoluteIndexedAddressing(LDY, this.regs.X); break;
                 case 0xdc: AbsoluteIndexedAddressing(NOP, this.regs.X); break;
                 case 0xfc: AbsoluteIndexedAddressing(NOP, this.regs.X); break;
@@ -335,6 +336,7 @@ namespace NES.CPU
                 case 0x3e: AbsoluteIndexedAddressing(ROL, this.regs.X); break;
                 case 0x5e: AbsoluteIndexedAddressing(LSR, this.regs.X); break;
                 case 0x7e: AbsoluteIndexedAddressing(ROR, this.regs.X); break;
+                case 0x9e: AbsoluteIndexedAddressing(SXA, this.regs.Y); break;
                 case 0xbe: AbsoluteIndexedAddressing(LDX, this.regs.Y); break;
                 case 0xde: AbsoluteIndexedAddressing(DEC, this.regs.X); break;
                 case 0xfe: AbsoluteIndexedAddressing(INC, this.regs.X); break;
