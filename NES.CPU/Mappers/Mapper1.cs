@@ -5,6 +5,7 @@ namespace NES.CPU.Mappers
 {
     public class Mapper1 : IMapper
     {
+        private bool isRamEnabled = false;
         private Memory<byte> prgRam = new Memory<byte>(new byte[0x2000]);
         private Memory<byte> chrRam = new Memory<byte>(new byte[0x4000]);
         private readonly RomImage image;
@@ -13,7 +14,7 @@ namespace NES.CPU.Mappers
         private MemoryHandle programRomBank0;
         private MemoryHandle programRomBank1;
         private byte prgShift = 0b10000;
-        private byte controlRegister;
+        private ControlRegister controlRegister;
 
         public Mapper1(RomImage image)
         {
@@ -52,7 +53,7 @@ namespace NES.CPU.Mappers
 
         unsafe byte IBusDevice.Read(Address address)
         {
-            if (0x6000 <= address.Ptr && address.Ptr < 0x8000)
+            if (0x6000 <= address.Ptr && address.Ptr < 0x8000 && isRamEnabled)
             {
                 //CPU $6000-$7FFF: 8 KB PRG RAM bank, (optional)
                 return prgRam.Span[address.Ptr - 0x6000];
@@ -73,6 +74,21 @@ namespace NES.CPU.Mappers
             }
         }
 
+        [Flags]
+        public enum ControlRegister : byte
+        {
+            MirroringOneScreenLower = 0x0,
+            MirroringOneScreenUpper = 0x1,
+            MirroringVertical = 0x2,
+            MirroringHorizontal = 0x3,
+            PrgBankMode0 = 0x0 << 2, // switch 32 KB at $8000, ignoring low bit of bank number
+            PrgBankMode1 = 0x1 << 2, // switch 32 KB at $8000, ignoring low bit of bank number
+            PrgBankMode2 = 0x2 << 2, // fix first bank at $8000 and switch 16 KB bank at $C000
+            PrgBankMode3 = 0x3 << 2, // fix last bank at $C000 and switch 16 KB bank at $8000
+            ChrBankMode0 = 0x0 << 4,
+            ChrBankMode1 = 0x1 << 4,
+        }
+
         void IBusDevice.Write(Address address, byte value)
         {
             //CPU $8000-$FFFF
@@ -86,12 +102,11 @@ namespace NES.CPU.Mappers
                 {
                     if ((prgShift & 0x1) > 0)
                     {
-                        byte regValue = (byte)((prgShift >> 1) | ((value & 0x1) << 5));
+                        byte regValue = (byte)((prgShift >> 1) | ((value & 0x1) << 4));
                         switch ((address.High & 0x60) >> 5)
                         {
                             case 0: //control
-                                throw new NotImplementedException();
-                                controlRegister = regValue;
+                                controlRegister = (ControlRegister)regValue;
                                 break;
                             case 1: //chr0
                                 throw new NotImplementedException();
@@ -102,7 +117,27 @@ namespace NES.CPU.Mappers
                                 characterRomBank1 = image.CharacterRomData.Slice(regValue * 0x4000, 0x4000).Pin();
                                 break;
                             case 3: //prg
-                                throw new NotImplementedException();
+                                isRamEnabled = (regValue & 0b10000) == 0;
+
+                                if ((controlRegister & ControlRegister.PrgBankMode2) > 0)
+                                {
+                                    // fix first bank at $8000 and switch 16 KB bank at $C000
+                                    this.programRomBank0 = image.ProgramRomData.Slice(0, 0x4000).Pin();
+                                    this.programRomBank1 = image.ProgramRomData.Slice(0x4000 * (regValue & 0xf), 0x4000).Pin();
+                                }
+                                else if ((controlRegister & ControlRegister.PrgBankMode3) > 0)
+                                {
+                                    // fix last bank at $C000 and switch 16 KB bank at $8000
+                                    this.programRomBank0 = image.ProgramRomData.Slice(0x4000 * (regValue & 0xf), 0x4000).Pin();
+                                    this.programRomBank1 = image.ProgramRomData.Slice(image.ProgramRomData.Length - 0x4000, 0x4000).Pin();
+                                }
+                                else
+                                {
+                                    // switch 32 KB at $8000, ignoring low bit of bank number
+                                    var bank = (regValue & 0xf) >> 1;
+                                    this.programRomBank0 = image.ProgramRomData.Slice(0x4000 * bank, 0x4000).Pin();
+                                    this.programRomBank1 = image.ProgramRomData.Slice(0x4000 * (bank + 1), 0x4000).Pin();
+                                }
                                 //4bit0
                                 //-----
                                 //CPPMM
@@ -114,7 +149,6 @@ namespace NES.CPU.Mappers
                                 //|                         3: fix last bank at $C000 and switch 16 KB bank at $8000)
                                 //+----- CHR ROM bank mode (0: switch 8 KB at a time; 1: switch two separate 4 KB banks)
                                 //this.controlRegister
-                                characterRomBank0 = image.CharacterRomData.Slice(regValue * 0x4000, 0x4000).Pin();
                                 break;
                         }
 

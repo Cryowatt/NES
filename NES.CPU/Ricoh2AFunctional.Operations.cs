@@ -47,6 +47,7 @@ namespace NES.CPU
             {
                 c.regs.PC.Ptr++;
                 c.Read(c.regs.PC);
+                c.regs.InterruptDisable = true;
             });
             Enqueue(PushStackFromPCH);
             Enqueue(PushStackFromPCL);
@@ -279,8 +280,8 @@ namespace NES.CPU
         public static byte STA(Ricoh2AFunctional cpu) => cpu.regs.A;
         public static byte STX(Ricoh2AFunctional cpu) => cpu.regs.X;
         public static byte STY(Ricoh2AFunctional cpu) => cpu.regs.Y;
-        public static byte SXA(Ricoh2AFunctional cpu, byte operand) => (byte)(cpu.regs.X & (cpu.address.High + 1));
-        public static byte SYA(Ricoh2AFunctional cpu, byte operand) => (byte)(cpu.regs.Y & (cpu.address.High + 1));
+        public static byte SXA(Ricoh2AFunctional cpu, byte operand) => (byte)(cpu.regs.X & (cpu.pointer.High + 1));
+        public static byte SYA(Ricoh2AFunctional cpu, byte operand) => (byte)(cpu.regs.Y & (cpu.pointer.High + 1));
         public static void TAX(Ricoh2AFunctional cpu) => cpu.regs.X = cpu.regs.A;
         public static void TAY(Ricoh2AFunctional cpu) => cpu.regs.Y = cpu.regs.A;
         public static void TSX(Ricoh2AFunctional cpu) => cpu.regs.X = cpu.regs.S;

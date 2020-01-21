@@ -203,12 +203,16 @@ namespace NES.CPU
 
         private void AbsoluteIndexedAddressing(Action queueOperation, byte index)
         {
-            Enqueue(ReadPCToAddress);
             Enqueue(c =>
             {
-                c.address.High = c.Read(c.regs.PC);
+                c.pointer.Ptr = c.Read(c.regs.PC);
                 c.regs.PC.Ptr++;
-                c.pointer.Ptr = (ushort)(c.address.Ptr + index);
+            });
+            Enqueue(c =>
+            {
+                c.pointer.High = c.Read(c.regs.PC);
+                c.regs.PC.Ptr++;
+                c.pointer.Ptr += index;
                 c.address.Low = c.pointer.Low;
             });
             Enqueue(c =>

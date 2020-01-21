@@ -2,6 +2,7 @@
 using NES.CPU.Mappers;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -133,7 +134,7 @@ namespace NES
         public void StartNes()
         {
             RomImage romFile;
-            var stream = File.OpenRead(@"..\nes-test-roms\instr_test-v3\rom_singles\06-abs_xy.nes");
+            var stream = File.OpenRead(@"..\nes-test-roms\blargg_nes_cpu_test5\official.nes");
             //var stream = File.OpenRead(@"..\nes-test-roms\instr_test-v3\official_only.nes");
             //var stream = File.OpenRead(@"..\nes-test-roms\\other\nestest.nes");
             using (var reader = new BinaryReader(stream))
@@ -150,19 +151,22 @@ namespace NES
             Task.Factory.StartNew(platform.Run);
         }
 
-        int lastChecksum = 0;
         private void OnInstruction(InstructionTrace obj)
         {
-            int checksum = this.platform.Read(0x12) << 24;
-            checksum |= this.platform.Read(0x13) << 16;
-            checksum |= this.platform.Read(0x14) << 8;
-            checksum |= this.platform.Read(0x15);
+            //if(seenInstructions.TryGetValue(obj.OpCode, out bool hasSeen) && !hasSeen)
+            //{
+            //    seenInstructions[obj.OpCode] = true;
+            //}
+            //int checksum = this.platform.Read(0x12) << 24;
+            //checksum |= this.platform.Read(0x13) << 16;
+            //checksum |= this.platform.Read(0x14) << 8;
+            //checksum |= this.platform.Read(0x15);
 
-            if (checksum != lastChecksum)
-            {
-                Console.WriteLine($"Checksum: {checksum:X8}");
-                lastChecksum = checksum;
-            }
+            //if (checksum != lastChecksum)
+            //{
+            //    Console.WriteLine($"Checksum: {checksum:X8}");
+            //    lastChecksum = checksum;
+            //}
             Console.WriteLine(obj);
         }
 
